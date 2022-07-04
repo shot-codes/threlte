@@ -1,74 +1,77 @@
+<!--
+  @component
+
+  This component is the backbone of the scene graph hierarchy system.
+  Child objects that also house this component register themselves onto
+  this component and let the parent decide on what to do with it.
+  
+-->
 <script lang="ts" context="module">
   import { getContext, onDestroy, setContext } from 'svelte'
-  import { writable } from 'svelte/store'
   import type { Writable } from 'svelte/store'
-  import type { Object3D } from 'three'
+  import type { Object3D as ThreeObject3D } from 'three'
   import { useThrelte } from '../hooks/useThrelte'
   import type { HierarchicalObjectProperties } from '../types/components'
-  import type { ThrelteParentContext } from '../types/types'
 
-  export const setParent = (objectStore: Writable<Object3D>) => {
-    setContext<ThrelteParentContext>('threlte-parent', objectStore)
+  const useHierarchicalObject = () => {
+    return {
+      onChildMount: getContext<HierarchicalObjectProperties['onChildMount']>(
+        'threlte-hierarchical-object-on-mount'
+      ),
+      onChildDestroy: getContext<HierarchicalObjectProperties['onChildDestroy']>(
+        'threlte-hierarchical-object-on-destroy'
+      )
+    }
   }
 
-  export const getParent = () => {
-    return getContext<ThrelteParentContext>('threlte-parent')
+  type ThrelteParentContext = {
+    parent: ThreeObject3D | undefined
+    parentStore: Writable<ThreeObject3D | undefined>
+    getParent: () => ThreeObject3D | undefined
+  }
+
+  export const useGetParent = () => {
+    return getContext<ThrelteParentContext>('threlte-hierarchical-parent-context')
   }
 </script>
 
 <script lang="ts">
-  /**
-   * GGE 2022: IMPORTANT: get the parent as soon as possible.
-   * because svelte contexts are also available inside
-   * components that declare the context.
-   */
-  const currentParent = getParent()
-  let previousParent: Object3D = $currentParent
+  import { createObjectStore } from '$lib/lib/createObjectStore'
 
-  // object property …
-  export let object: HierarchicalObjectProperties['object']
+  export let object: HierarchicalObjectProperties['object'] = undefined
+  const objectStore = createObjectStore(object)
+  $: objectStore.set(object)
 
-  // … but we only work with this store to stay consistent
-  const currentObject = writable(object)
-  $: $currentObject = object
-  let previousObject = object
-
-  /**
-   * GE 2022: after getting the parent from the context,
-   * it's safe to set it to the current object.
-   */
-  setParent(currentObject)
+  export let onChildMount: HierarchicalObjectProperties['onChildMount'] = (child) => {
+    if (object) object.add(child)
+  }
+  export let onChildDestroy: HierarchicalObjectProperties['onChildDestroy'] = (child) => {
+    if (object) object.remove(child)
+  }
 
   const { invalidate } = useThrelte()
 
-  $: {
-    // on object change
-    if ($currentObject !== previousObject) {
-      if (previousObject) {
-        $currentParent.remove(previousObject)
-      }
-      $currentParent.add($currentObject)
-      invalidate(`HierarchicalObject: object changed`)
-      previousObject = $currentObject
-    }
-  }
-
-  $: {
-    // on parent change
-    if ($currentParent !== previousParent) {
-      previousParent.remove($currentObject)
-      $currentParent.add($currentObject)
-      invalidate(`HierarchicalObject: parent changed`)
-      previousParent = $currentParent
-    }
-  }
-
-  $currentParent.add($currentObject)
+  const callbacks = useHierarchicalObject()
   invalidate('HierarchicalObject: object added')
-
+  if (object) callbacks.onChildMount?.(object)
   onDestroy(() => {
-    $currentParent.remove($currentObject)
+    if (object) callbacks.onChildDestroy?.(object)
     invalidate('HierarchicalObject: object removed')
+  })
+
+  setContext<HierarchicalObjectProperties['onChildMount']>(
+    'threlte-hierarchical-object-on-mount',
+    onChildMount
+  )
+  setContext<HierarchicalObjectProperties['onChildDestroy']>(
+    'threlte-hierarchical-object-on-destroy',
+    onChildDestroy
+  )
+
+  setContext<ThrelteParentContext>('threlte-hierarchical-parent-context', {
+    getParent: () => object,
+    parent: object,
+    parentStore: objectStore
   })
 </script>
 

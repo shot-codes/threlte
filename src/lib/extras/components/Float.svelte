@@ -24,7 +24,7 @@
   export let floatingRange: FloatProperties['floatingRange'] = [-0.1, 0.1]
 
   // THREE.Group binding
-  export let group: ThreeGroup = undefined
+  export let group: ThreeGroup | undefined = undefined
 
   let t = Math.random() * 10000
 

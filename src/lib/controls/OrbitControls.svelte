@@ -4,7 +4,7 @@
   import { OrbitControls as ThreeOrbitControls } from 'three/examples/jsm/controls/OrbitControls'
   import { useFrame } from '../hooks/useFrame'
   import { useThrelte } from '../hooks/useThrelte'
-  import { getParent } from '../internal/HierarchicalObject.svelte'
+  import { useGetParent } from '../internal/HierarchicalObject.svelte'
   import TransformableObject from '../internal/TransformableObject.svelte'
   import { getThrelteUserData } from '../lib/getThrelteUserData'
   import type { OrbitControlsProperties } from '../types/components'
@@ -35,12 +35,13 @@
   export let zoomSpeed: OrbitControlsProperties['zoomSpeed'] = undefined
   export let target: OrbitControlsProperties['target'] = undefined
 
-  const parent = getParent()
+  const { parent } = useGetParent()
+
   const { renderer, invalidate } = useThrelte()
 
   if (!renderer) throw new Error('Threlte Context missing: Is <OrbitControls> a child of <Canvas>?')
 
-  if (!($parent instanceof Camera)) {
+  if (!(parent instanceof Camera)) {
     throw new Error('Parent missing: <OrbitControls> need to be a child of a <Camera>')
   }
 
@@ -57,15 +58,15 @@
   const onStart = () => dispatch('start')
   const onEnd = () => dispatch('end')
 
-  export const controls = new ThreeOrbitControls($parent, renderer.domElement)
-  getThrelteUserData($parent).orbitControls = controls
+  export const controls = new ThreeOrbitControls(parent, renderer.domElement)
+  getThrelteUserData(parent).orbitControls = controls
 
   controls.addEventListener('change', onChange)
   controls.addEventListener('start', onStart)
   controls.addEventListener('end', onEnd)
 
   onDestroy(() => {
-    delete getThrelteUserData($parent).orbitControls
+    delete getThrelteUserData(parent).orbitControls
     controls.removeEventListener('change', onChange)
     controls.removeEventListener('start', onStart)
     controls.removeEventListener('end', onEnd)

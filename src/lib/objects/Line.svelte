@@ -32,19 +32,21 @@
 
   const { invalidate } = useThrelte()
 
-  const setGeometryFromPoints = () => {
+  const maybeSetGeometryFromPoints = (points: LineProperties['points']) => {
+    if (!points) return
     const v3Array = points.map((p) => (p instanceof Vector3 ? p : new Vector3().fromArray(p)))
     tempGeometry.setFromPoints(v3Array)
   }
 
-  const usePoints = () => !geometry
-  const useGeometry = () => !!geometry
+  const useGeometry = (
+    geometry: LineProperties['geometry']
+  ): geometry is NonNullable<LineProperties['geometry']> => !!geometry
 
-  if (usePoints()) {
-    setGeometryFromPoints()
+  if (!geometry) {
+    maybeSetGeometryFromPoints(points)
   }
 
-  export const line = new ThreeLine(useGeometry() ? geometry : tempGeometry, material)
+  export const line = new ThreeLine(useGeometry(geometry) ? geometry : tempGeometry, material)
   const getLine = () => line
 
   $: {
@@ -59,12 +61,12 @@
 
   $: {
     if (geometry !== previousGeometry) {
-      if (useGeometry()) {
+      if (useGeometry(geometry)) {
         getLine().geometry = geometry
         invalidate('Line: geometry changed')
       }
     } else {
-      if (useGeometry()) {
+      if (useGeometry(geometry)) {
         invalidate('Line: geometry props changed')
       }
     }
@@ -73,8 +75,8 @@
 
   $: {
     if (previousPoints !== points) {
-      if (usePoints()) {
-        setGeometryFromPoints()
+      if (!geometry) {
+        maybeSetGeometryFromPoints(points)
         getLine().geometry = tempGeometry
       }
       previousPoints = points

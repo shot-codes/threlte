@@ -6,7 +6,7 @@
   import { TransformControls } from 'three/examples/jsm/controls/TransformControls'
   import { useOnStoreChange } from '../hooks/useOnStoreChange'
   import { useThrelte } from '../hooks/useThrelte'
-  import { getParent } from '../internal/HierarchicalObject.svelte'
+  import { useGetParent } from '../internal/HierarchicalObject.svelte'
   import LayerableObject from '../internal/LayerableObject.svelte'
   import { getThrelteUserData } from '../lib/getThrelteUserData'
   import type { TransformControlsProperties } from '../types/components'
@@ -26,7 +26,9 @@
   export let space: TransformControlsProperties['space'] = undefined
 
   const { camera, renderer, invalidate, scene } = useThrelte()
-  const parent = getParent()
+  const { parent } = useGetParent()
+  if (!parent)
+    throw new Error('TransformControls: parent not defined. Is this component a child of <Canvas>?')
 
   const dispatch = createEventDispatcher<{
     change: void
@@ -160,7 +162,7 @@
        * The event handler is set by <TransformableObject>.
        * Not the best solution but quite efficient.
        */
-      getThrelteUserData($parent).onTransform?.()
+      if (parent) getThrelteUserData(parent).onTransform?.()
       invalidate('TransformControls: change event')
       dispatch('change', e)
     },
@@ -207,6 +209,11 @@
     'eye-changed': (e) => dispatch('eye-changed', e)
   }
 
+  if (!renderer)
+    throw new Error(
+      'TransformControls: renderer is undefined, is this component a child of <Canvas>?'
+    )
+
   const transformControls = new TransformControls($camera, renderer.domElement)
 
   export const reset = () => transformControls.reset()
@@ -222,22 +229,7 @@
   $: if (size !== undefined) transformControls.setSize(size)
   $: if (space !== undefined) transformControls.setSpace(space)
 
-  transformControls.attach($parent)
-
-  useOnStoreChange(
-    parent,
-    (newParent, oldParent) => {
-      if (oldParent !== null) {
-        transformControls.detach()
-      }
-      if (newParent) {
-        transformControls.attach(newParent)
-      }
-    },
-    {
-      equalityFn: (newParent, oldParent) => newParent?.uuid === oldParent?.uuid
-    }
-  )
+  transformControls.attach(parent)
 
   const addListeners = () => {
     Object.entries(eventMap).forEach(([key, fn]) => {

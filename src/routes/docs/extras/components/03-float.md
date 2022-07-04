@@ -45,7 +45,7 @@ This component is a port of [drei's `<Float>` component](https://github.com/pmnd
 speed: number = 1
 rotationIntensity: number = 1
 floatIntensity: number = 1
-floatingRange: [number?, number?] = [-0.1, 0.1]
+floatingRange: [number, number] = [-0.1, 0.1]
 position: Position | undefined = undefined
 scale: Scale | undefined = undefined
 rotation: Rotation | undefined = undefined

@@ -14,7 +14,8 @@ import type { Object3D } from 'three'
  * @param object
  * @returns store
  */
-export const createObjectStore = <T extends Object3D>(object: T): Writable<T> => {
+export function createObjectStore<T extends Object3D | undefined>(object: T): Writable<T>
+export function createObjectStore<T extends Object3D>(object: T): Writable<T> {
   const objectStore = writable(object)
   let unwrappedObject = object
   const unsubscribeObjectStore = objectStore.subscribe((o) => (unwrappedObject = o))

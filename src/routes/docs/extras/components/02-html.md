@@ -148,7 +148,7 @@ calculatePosition: (
   size: { width: number; height: number }
 ) => [number, number] = defaultCalculatePosition
 eps: number = 0.001
-occlude: boolean | Object3D[] | undefined = undefined
+occlude: boolean | Object3D[] = false
 zIndexRange: [number, number] = [16777271, 0]
 sprite: boolean = false
 pointerEvents:

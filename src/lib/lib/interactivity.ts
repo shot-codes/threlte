@@ -60,10 +60,10 @@ export const useEventRaycast = (
   onPointerDown: (e: MouseEvent | PointerEvent) => void
   onPointerMove: (e: MouseEvent | PointerEvent) => void
 } => {
-  let camera
+  let camera = get(ctx.camera)
   const unsubscribeCamera = ctx.camera.subscribe((value) => (camera = value))
   onDestroy(unsubscribeCamera)
-  let pointer
+  let pointer = get(ctx.pointer)
   const unsubscribePointer = ctx.pointer.subscribe((value) => (pointer = value))
   onDestroy(unsubscribePointer)
 
@@ -118,10 +118,10 @@ export const useFrameloopRaycast = (
     (value) => (pointerOverCanvas = value)
   )
   onDestroy(unsubscribePointerOverCanvas)
-  let camera
+  let camera = get(ctx.camera)
   const unsubscribeCamera = ctx.camera.subscribe((value) => (camera = value))
   onDestroy(unsubscribeCamera)
-  let pointer
+  let pointer = get(ctx.pointer)
   const unsubscribePointer = ctx.pointer.subscribe((value) => (pointer = value))
   onDestroy(unsubscribePointer)
 

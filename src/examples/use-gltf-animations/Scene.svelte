@@ -11,7 +11,7 @@
   import { useGltfAnimations } from 'threlte/extras'
 
   const { gltf } = useGltfAnimations<'Take 001'>(({ actions }) => {
-    actions['Take 001'].play()
+    actions['Take 001']?.play()
   })
 
   const { scene } = useThrelte()

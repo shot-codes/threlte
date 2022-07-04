@@ -31,7 +31,7 @@
 
   const instancedMeshContextName = 'threlte-instanced-mesh-context' as const
 
-  export const useInstancedMesh = (id: string) => {
+  export const useInstancedMesh = (id: string | undefined) => {
     return getContext<InstancedMeshContext>(instancedMeshContextName + id)
   }
 </script>
@@ -62,11 +62,13 @@
     $instancedMesh.material = newMaterial
   })
 
-  let autoCount = count === undefined
-  $: autoCount = count === undefined
+  const autoCount = (count: number | undefined): count is undefined => count === undefined
+
+  // let autoCount = count === undefined
+  // $: autoCount = count === undefined
 
   export const instancedMesh: Writable<ThreeInstancedMesh> = writable(
-    new ThreeInstancedMesh(geometry, material, autoCount ? 0 : count)
+    new ThreeInstancedMesh(geometry, material, autoCount(count) ? 0 : count)
   )
   const parentObject = new Object3D()
 
@@ -114,7 +116,7 @@
   )
 
   const registerInstance = (instance: ThrelteInstance) => {
-    if (autoCount) {
+    if (autoCount(count)) {
       instances.push(instance)
       if (!$instanceCountChangeHandlerQueued) queueHandleInstanceCountChange()
     } else {
@@ -133,7 +135,7 @@
   }
 
   const removeInstance = (instance: ThrelteInstance) => {
-    if (autoCount) {
+    if (autoCount(count)) {
       const index = instances.findIndex((i) => i === instance)
       instances.splice(index, 1)
       if (!$instanceCountChangeHandlerQueued) queueHandleInstanceCountChange()
@@ -203,6 +205,7 @@
    * events are triggered on the instances.
    */
   const onEvent = (e: CustomEvent<ThreltePointerEvent>) => {
+    if (!e.detail.instanceId) return
     const instance = instances[e.detail.instanceId]
     if (instance && instance.pointerEventDispatcher) {
       instance.pointerEventDispatcher(e.type as keyof ThreltePointerEventMap, e.detail)

@@ -54,7 +54,7 @@
   }
 
   const prepareNonDirectChildMatrix = () => {
-    let currentObj: Object3D = object3d.parent
+    let currentObj = object3d.parent
     const interjacentObjects: Object3D[] = []
     // tiny bit faster than Object3D.traverseAncestors
     // as that cannot be broken out of

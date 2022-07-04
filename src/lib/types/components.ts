@@ -16,9 +16,12 @@ import type { LineMaterial } from 'three/examples/jsm/lines/LineMaterial'
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import type { Pass } from 'three/examples/jsm/postprocessing/Pass'
 import type { LookAt, Position, Rotation, Scale, Text as TextType, ThrelteLayers } from './types'
+import type { SetOptional } from 'type-fest'
 
 export type HierarchicalObjectProperties = {
-  object: Object3D
+  object?: Object3D
+  onChildMount?: (child: Object3D) => void
+  onChildDestroy?: (child: Object3D) => void
 }
 
 export type InteractiveObjectProperties = {
@@ -321,11 +324,17 @@ export type AudioInstanceProperties<T extends Audio<GainNode> | PositionalAudio>
   stop: () => T
 }
 
-export type AudioProperties = Omit<AudioInstanceProperties<Audio>, 'audio'> & {
+export type AudioProperties = Omit<
+  SetOptional<AudioInstanceProperties<Audio>, 'play' | 'pause' | 'stop'>,
+  'audio'
+> & {
   id?: string
 }
 
-export type PositionalAudioProperties = Omit<AudioInstanceProperties<PositionalAudio>, 'audio'> & {
+export type PositionalAudioProperties = Omit<
+  SetOptional<AudioInstanceProperties<PositionalAudio>, 'play' | 'pause' | 'stop'>,
+  'audio'
+> & {
   id?: string
   refDistance?: number
   rolloffFactor?: number
