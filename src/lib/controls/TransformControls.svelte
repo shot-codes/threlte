@@ -6,7 +6,7 @@
   import { TransformControls } from 'three/examples/jsm/controls/TransformControls'
   import { useOnStoreChange } from '../hooks/useOnStoreChange'
   import { useThrelte } from '../hooks/useThrelte'
-  import { useGetParent } from '../internal/HierarchicalObject.svelte'
+  import { useParent } from '../internal/HierarchicalObject.svelte'
   import LayerableObject from '../internal/LayerableObject.svelte'
   import { getThrelteUserData } from '../lib/getThrelteUserData'
   import type { TransformControlsProperties } from '../types/components'
@@ -26,8 +26,8 @@
   export let space: TransformControlsProperties['space'] = undefined
 
   const { camera, renderer, invalidate, scene } = useThrelte()
-  const { parent } = useGetParent()
-  if (!parent)
+  const parent = useParent()
+  if (!$parent)
     throw new Error('TransformControls: parent not defined. Is this component a child of <Canvas>?')
 
   const dispatch = createEventDispatcher<{
@@ -162,7 +162,7 @@
        * The event handler is set by <TransformableObject>.
        * Not the best solution but quite efficient.
        */
-      if (parent) getThrelteUserData(parent).onTransform?.()
+      if ($parent) getThrelteUserData($parent).onTransform?.()
       invalidate('TransformControls: change event')
       dispatch('change', e)
     },
@@ -229,7 +229,7 @@
   $: if (size !== undefined) transformControls.setSize(size)
   $: if (space !== undefined) transformControls.setSpace(space)
 
-  transformControls.attach(parent)
+  transformControls.attach($parent)
 
   const addListeners = () => {
     Object.entries(eventMap).forEach(([key, fn]) => {

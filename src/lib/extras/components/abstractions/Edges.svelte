@@ -2,7 +2,7 @@
   import { useThrelte } from '../../../hooks/useThrelte'
   import { onDestroy } from 'svelte'
   import { Color, EdgesGeometry, LineBasicMaterial, Mesh } from 'three'
-  import { useGetParent } from '../../../internal/HierarchicalObject.svelte'
+  import { useParent } from '../../../internal/HierarchicalObject.svelte'
   import LineSegments from '../../../objects/LineSegments.svelte'
   import type { EdgesProperties } from '../../types/components'
 
@@ -25,11 +25,11 @@
   export let ignorePointer: EdgesProperties['ignorePointer'] = false
   export let lookAt: EdgesProperties['lookAt'] = undefined
 
-  const { parent } = useGetParent()
-  if (!parent || parent.type !== 'Mesh')
+  const parent = useParent()
+  if (!$parent || $parent.type !== 'Mesh')
     throw new Error('Edges: component must be a child of a Mesh')
 
-  const parentMesh = parent as Mesh
+  const parentMesh = $parent as Mesh
 
   const geometry =
     'clone' in parentMesh.geometry ? parentMesh.geometry.clone() : parentMesh.geometry

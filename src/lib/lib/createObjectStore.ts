@@ -15,13 +15,15 @@ import type { Object3D } from 'three'
  * @returns store
  */
 export function createObjectStore<T extends Object3D | undefined>(object: T): Writable<T>
-export function createObjectStore<T extends Object3D>(object: T): Writable<T> {
+export function createObjectStore<T extends Object3D>(object: T): Writable<T>
+export function createObjectStore<T extends Object3D | undefined>(object: T): Writable<T> {
   const objectStore = writable(object)
   let unwrappedObject = object
   const unsubscribeObjectStore = objectStore.subscribe((o) => (unwrappedObject = o))
   onDestroy(unsubscribeObjectStore)
 
   const set = (newObject: T) => {
+    if (!newObject || !unwrappedObject) return objectStore.set(newObject)
     if (newObject.uuid === unwrappedObject.uuid) return
     objectStore.set(newObject)
   }
