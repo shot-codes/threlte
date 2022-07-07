@@ -5,6 +5,10 @@
   export let object: SceneGraphObjectProperties['object']
 </script>
 
-<HierarchicalObject {object}>
+<HierarchicalObject
+  {object}
+  onChildMount={(child) => object.add(child)}
+  onChildDestroy={(child) => object.remove(child)}
+>
   <slot />
 </HierarchicalObject>

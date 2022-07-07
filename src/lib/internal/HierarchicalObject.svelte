@@ -39,31 +39,25 @@
 
   export let children: Object3D[] = []
 
-  export let onChildMount: HierarchicalObjectProperties['onChildMount'] = (child) => {
-    if (object) object.add(child)
-  }
-
+  export let onChildMount: HierarchicalObjectProperties['onChildMount'] = undefined
   const onChildMountProxy: HierarchicalObjectProperties['onChildMount'] = (child) => {
     // keep track of children
     children.push(child)
     children = children
 
-    // call provided method
-    if (onChildMount) onChildMount(child)
+    // maybe call provided method
+    onChildMount?.(child)
   }
 
-  export let onChildDestroy: HierarchicalObjectProperties['onChildDestroy'] = (child) => {
-    if (object) object.remove(child)
-  }
-
+  export let onChildDestroy: HierarchicalObjectProperties['onChildDestroy'] = undefined
   const onChildDestroyProxy: HierarchicalObjectProperties['onChildDestroy'] = (child) => {
     // keep track of children
     const index = children.findIndex((c) => c.uuid === child.uuid)
     if (index !== -1) children.splice(index, 1)
     children = children
 
-    // call provided method
-    if (onChildDestroy) onChildDestroy(child)
+    // maybe call provided method
+    onChildDestroy?.(child)
   }
 
   const { invalidate } = useThrelte()
