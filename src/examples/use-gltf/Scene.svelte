@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy } from 'svelte'
+  import { derived } from 'svelte/store'
   import { EquirectangularReflectionMapping } from 'three'
   import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader'
   import {
@@ -32,6 +33,11 @@
   const { gltf } = useGltf<'node_damagedHelmet_-6514', 'Material_MR'>(
     '/models/helmet/DamagedHelmet.gltf'
   )
+
+  const helmet = derived(gltf, (gltf) => {
+    if (!gltf || !gltf.nodes['node_damagedHelmet_-6514']) return
+    return gltf.nodes['node_damagedHelmet_-6514']
+  })
 </script>
 
 <PerspectiveCamera position={{ z: 10 }} fov={20} />
@@ -39,7 +45,7 @@
 <DirectionalLight position={{ y: 10, z: 10 }} />
 
 <Group rotation={{ y: rotation }}>
-  {#if $gltf}
-    <Object3DInstance object={$gltf.nodes['node_damagedHelmet_-6514']} />
+  {#if $helmet}
+    <Object3DInstance object={$helmet} />
   {/if}
 </Group>
