@@ -54,6 +54,6 @@ Property `layers` can be:
 - `'all'`
 - `'none'`
 
-:::admonition type=tip
+:::admonition type="tip"
 TypeScript users will benefit from strong types, JavaScript users should be aware that there is no runtime validation happening.
 :::
