@@ -31,7 +31,7 @@
   export let transform: HTMLProperties['transform'] = false
   export let calculatePosition: HTMLProperties['calculatePosition'] = defaultCalculatePosition
   export let eps: HTMLProperties['eps'] = 0.001
-  export let occlude: HTMLProperties['occlude'] = undefined
+  export let occlude: HTMLProperties['occlude'] = false
   export let zIndexRange: HTMLProperties['zIndexRange'] = [16777271, 0]
   export let sprite: HTMLProperties['sprite'] = false
   export let pointerEvents: HTMLProperties['pointerEvents'] = 'auto'
@@ -272,7 +272,15 @@
   })
 
   const portalAction = (el: HTMLElement) => {
+    if (!renderer) {
+      console.warn('HTML: renderer is undefined. Is this component a child to <Canvas>?')
+      return
+    }
     const target = portal ?? renderer.domElement.parentElement
+    if (!target) {
+      console.warn('HTML: target is undefined.')
+      return
+    }
     target.appendChild(el)
     return {
       destroy: () => {
