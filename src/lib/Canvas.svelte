@@ -4,7 +4,7 @@
   import type { ShadowMapType, WebGLRendererParameters } from 'three'
   import { PCFSoftShadowMap } from 'three'
   import { useParentSize } from './hooks/useParentSize'
-  import HierarchicalObject from './internal/HierarchicalObject.svelte'
+  import SceneGraphObject from './internal/SceneGraphObject.svelte'
   import { browser } from './lib/browser'
   import { createContexts } from './lib/contexts'
   import { setDefaultCameraAspectOnSizeChange } from './lib/defaultCamera'
@@ -112,9 +112,9 @@
   on:pointerleave={() => getCtx().pointerOverCanvas.set(false)}
 >
   {#if initialized}
-    <HierarchicalObject object={ctx.scene}>
+    <SceneGraphObject object={ctx.scene}>
       <slot />
-    </HierarchicalObject>
+    </SceneGraphObject>
   {/if}
 </canvas>
 

@@ -2,7 +2,7 @@
   import { createEventDispatcher, onDestroy, onMount } from 'svelte'
   import { Color, Matrix4, Object3D } from 'three'
   import { useFrame } from '../hooks/useFrame'
-  import HierarchicalObject from '../internal/HierarchicalObject.svelte'
+  import SceneGraphObject from '../internal/SceneGraphObject.svelte'
   import TransformableObject from '../internal/TransformableObject.svelte'
   import { useInstancedMesh } from '../objects/InstancedMesh.svelte'
   import type { InstanceProperties } from '../types/components'
@@ -110,9 +110,9 @@
   })
 </script>
 
-<HierarchicalObject object={object3d}>
+<SceneGraphObject object={object3d}>
   <slot />
-</HierarchicalObject>
+</SceneGraphObject>
 
 <TransformableObject
   object={object3d}

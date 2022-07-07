@@ -3,7 +3,7 @@
   import { useFrame } from '../hooks/useFrame'
   import { useThrelte } from '../hooks/useThrelte'
   import LightInstance from '../instances/LightInstance.svelte'
-  import HierarchicalObject from '../internal/HierarchicalObject.svelte'
+  import SceneGraphObject from '../internal/SceneGraphObject.svelte'
   import TransformableObject from '../internal/TransformableObject.svelte'
   import type { SpotLightProperties } from '../types/components'
 
@@ -84,7 +84,7 @@
 </script>
 
 {#if target && !(target instanceof Object3D)}
-  <HierarchicalObject object={originalTarget} />
+  <SceneGraphObject object={originalTarget} />
   <TransformableObject object={originalTarget} position={target} />
 {/if}
 

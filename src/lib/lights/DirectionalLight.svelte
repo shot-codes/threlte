@@ -3,7 +3,7 @@
   import { DirectionalLight as ThreeDirectionalLight, Object3D } from 'three'
   import { useThrelte } from '../hooks/useThrelte'
   import LightInstance from '../instances/LightInstance.svelte'
-  import HierarchicalObject from '../internal/HierarchicalObject.svelte'
+  import SceneGraphObject from '../internal/SceneGraphObject.svelte'
   import TransformableObject from '../internal/TransformableObject.svelte'
   import type { DirectionalLightProperties } from '../types/components'
 
@@ -71,7 +71,7 @@
 </script>
 
 {#if target && !(target instanceof Object3D)}
-  <HierarchicalObject object={originalTarget} />
+  <SceneGraphObject object={originalTarget} />
   <TransformableObject object={originalTarget} position={target} />
 {/if}
 

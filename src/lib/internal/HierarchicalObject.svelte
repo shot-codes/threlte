@@ -12,6 +12,7 @@
   import type { Object3D, Object3D as ThreeObject3D } from 'three'
   import { useThrelte } from '../hooks/useThrelte'
   import type { HierarchicalObjectProperties } from '../types/components'
+  import { createObjectStore } from '../lib/createObjectStore'
 
   const useHierarchicalObject = () => {
     return {
@@ -32,8 +33,6 @@
 </script>
 
 <script lang="ts">
-  import { createObjectStore } from '$lib/lib/createObjectStore'
-
   export let object: HierarchicalObjectProperties['object'] = undefined
   const objectStore = createObjectStore(object)
   $: objectStore.set(object)

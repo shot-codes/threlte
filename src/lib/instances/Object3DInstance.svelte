@@ -1,6 +1,6 @@
 <script lang="ts">
   import { useThrelte } from '../hooks/useThrelte'
-  import HierarchicalObject from '../internal/HierarchicalObject.svelte'
+  import SceneGraphObject from '../internal/SceneGraphObject.svelte'
   import LayerableObject from '../internal/LayerableObject.svelte'
   import TransformableObject from '../internal/TransformableObject.svelte'
   import ViewportAwareObject from '../internal/ViewportAwareObject.svelte'
@@ -39,8 +39,8 @@
 
 <TransformableObject {object} {position} {rotation} {scale} {lookAt} />
 
-<HierarchicalObject {object}>
+<SceneGraphObject {object}>
   <slot />
-</HierarchicalObject>
+</SceneGraphObject>
 
 <ViewportAwareObject bind:inViewport {object} {viewportAware} on:viewportenter on:viewportleave />

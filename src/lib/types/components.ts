@@ -24,6 +24,10 @@ export type HierarchicalObjectProperties = {
   onChildDestroy?: (child: Object3D) => void
 }
 
+export type SceneGraphObjectProperties = {
+  object: Object3D
+}
+
 export type InteractiveObjectProperties = {
   object: Object3D
   interactive: boolean
