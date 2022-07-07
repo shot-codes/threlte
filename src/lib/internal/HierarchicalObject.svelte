@@ -76,11 +76,11 @@
   /**
    * Call parent methods first, …
    */
-  const callbacks = useHierarchicalObject()
+  const parentCallbacks = useHierarchicalObject()
   invalidate('HierarchicalObject: object added')
-  if (object) callbacks.onChildMount?.(object)
+  if (object) parentCallbacks.onChildMount?.(object)
   onDestroy(() => {
-    if (object) callbacks.onChildDestroy?.(object)
+    if (object) parentCallbacks.onChildDestroy?.(object)
     invalidate('HierarchicalObject: object removed')
   })
 
