@@ -1,7 +1,17 @@
 import { useThrelte } from '../../hooks/useThrelte'
 import { resolve } from './resolve'
 
-const ignoredProps = ['$$scope', '$$slots', 'type', 'args', 'attach', 'instance']
+const ignoredProps = [
+  '$$scope',
+  '$$slots',
+  'type',
+  'args',
+  'attach',
+  'instance',
+  'dispose',
+  'manual',
+  'makeDefault'
+]
 
 /**
  * Only scalar values are memoized, objects and arrays are considered
