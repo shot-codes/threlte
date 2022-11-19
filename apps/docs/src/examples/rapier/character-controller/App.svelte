@@ -1,0 +1,39 @@
+<script lang="ts">
+	import { Canvas } from '@threlte/core'
+	import { HTML } from '@threlte/extras'
+	import { Debug, World } from '@threlte/rapier'
+	import Scene from './Scene.svelte'
+	import { KeyboardControls } from 'svelte-kbc'
+
+	const config = [
+		// individual key presses
+		{ name: 'forward', keys: ['ArrowUp'] },
+		{ name: 'backward', keys: ['ArrowDown'] },
+		{ name: 'left', keys: ['ArrowLeft'] },
+		{ name: 'right', keys: ['ArrowRight'] }
+	]
+</script>
+
+<Canvas>
+	<World>
+		<Debug />
+		<KeyboardControls {config}>
+			<Scene />
+		</KeyboardControls>
+
+		<HTML slot="fallback" transform>
+			<p>
+				It seems your browser<br />
+				doesn't support WASM.<br />
+				I'm sorry.
+			</p>
+		</HTML>
+	</World>
+</Canvas>
+
+<style>
+	p {
+		font-size: 0.75rem;
+		line-height: 1rem;
+	}
+</style>

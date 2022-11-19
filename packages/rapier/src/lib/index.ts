@@ -18,6 +18,7 @@ export { default as Collider } from './components/Colliders/Collider.svelte'
 export { default as AutoColliders } from './components/Colliders/AutoColliders.svelte'
 export { default as CollisionGroups } from './components/CollisionGroups/CollisionGroups.svelte'
 export { default as Attractor } from './components/Attractor/Attractor.svelte'
+export { default as CharacterController } from './components/CharacterController/CharacterController.svelte'
 
 // recipes
 export { default as BasicPlayerController } from './recipes/BasicPlayerController.svelte'
