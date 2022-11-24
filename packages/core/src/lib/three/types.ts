@@ -1,3 +1,4 @@
+import type { ThrelteContext } from '../types/types'
 import type { ConditionalKeys, Primitive } from 'type-fest'
 
 /**
@@ -46,7 +47,10 @@ type DisposableProps = {
 // Class Props
 type ClassProps<Type extends any> = Type extends AnyClass
   ? {
-      args?: any[] | ConstructorParameters<Type>
+      args?:
+        | any[]
+        | ConstructorParameters<Type>
+        | ((ctx: ThrelteContext) => any[] | ConstructorParameters<Type>)
     }
   : Record<string, unknown>
 
@@ -112,4 +116,6 @@ export type Slots<Type extends any> = {
 
 // -------------------- EVENTS --------------------
 
-export type Events<Type extends any> = Record<string, unknown>
+export type Events<Type extends any> = {
+  create: { ref: MaybeInstance<Type> } & ThrelteContext
+} & Record<string, unknown>

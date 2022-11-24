@@ -1,4 +1,24 @@
+<script
+  lang="ts"
+  context="module"
+>
+  // Type Gaurds
+  const isClass = (value: any): value is AnyClass => {
+    return typeof value === 'function' && /^\s*class\s+/.test(value.toString())
+  }
+  const isArray = (value: any): value is any[] => {
+    return Array.isArray(value)
+  }
+  const extendsObject3D = (object: any): object is Object3D => {
+    return !!(object as any).isObject3D
+  }
+  const isDisposableObject = (object: any): object is DisposableThreeObject => {
+    return (object as any).dispose !== undefined
+  }
+</script>
+
 <script lang="ts">
+  import { useThrelte } from '../hooks/useThrelte'
   import { getContext, setContext } from 'svelte'
   import { writable, type Writable } from 'svelte/store'
   import type { Object3D } from 'three'
@@ -9,6 +29,7 @@
   import { useCamera } from './lib/useCamera'
   import { useEvents } from './lib/useEvents'
   import { useProps } from './lib/useProps'
+  import { useCreateEvent } from './lib/useCreateEvent'
   import type { AnyClass, MaybeInstance, Props } from './types'
 
   type Type = $$Generic
@@ -28,63 +49,53 @@
   type ThrelteThreeParentContext = Writable<any | undefined>
   const parent = getContext<ThrelteThreeParentContext>('threlte-hierarchical-parent-context')
 
-  // Type Gaurds
-  const isClass = (type: any): type is AnyClass => {
-    return typeof type === 'function' && /^\s*class\s+/.test(type.toString())
-  }
-  const argsIsConstructorParameters = (args: any): args is ConstructorParameters<AnyClass> => {
-    return Array.isArray(args)
+  const ctx = useThrelte()
+
+  const makeRef = (type: Type, args: AllProps['args']) => {
+    if (!isClass(type)) {
+      return type
+    }
+    if (isArray(args)) {
+      return new type(...args)
+    }
+    if (!args) {
+      return new type()
+    }
+    return new type(...args(ctx))
   }
 
   // We can't create the object in a reactive statement due to providing context
-  export let ref = (
-    isClass(type) && argsIsConstructorParameters(args)
-      ? new type(...(args as any)) // TODO: fix this any
-      : isClass(type)
-      ? new type()
-      : type
-  ) as MaybeInstance<Type>
+  export let ref = makeRef(type, args) as MaybeInstance<Type>
+  // The hierarchical context needs a store to be reactive
+  const objectStore = writable(ref)
   let initialized = false
   $: if (initialized) {
-    ref = (
-      isClass(type) && argsIsConstructorParameters(args)
-        ? new type(...(args as any)) // TODO: fix this any
-        : isClass(type)
-        ? new type()
-        : type
-    ) as MaybeInstance<Type>
+    ref = makeRef(type, args) as MaybeInstance<Type>
+    objectStore.set(ref)
   } else {
     initialized = true
   }
-  const objectStore = writable(ref)
-  $: objectStore.set(ref)
   setContext<ThrelteThreeParentContext>('threlte-hierarchical-parent-context', objectStore)
 
+  // "Create" Event
+  const createEvent = useCreateEvent(ref)
+  $: createEvent.updateRef(ref)
+
   // Props
-  $: props = useProps()
-  $: props.updateProps(ref, $$restProps, {
-    manualCamera: manual
-  })
+  const props = useProps()
+  $: props.updateProps(ref, $$restProps, { manualCamera: manual })
 
   // Camera
-  $: camera = useCamera()
+  const camera = useCamera()
   $: camera.update(ref, manual)
   $: camera.makeDefaultCamera(ref, makeDefault)
 
   // Attachment
-  $: attachment = useAttach()
+  const attachment = useAttach()
   $: attachment.update(ref, $parent, attach)
 
-  const extendsObject3D = (object: any): object is Object3D => {
-    return !!(object as any).isObject3D
-  }
-
-  const isDisposableObject = (object: any): object is DisposableThreeObject => {
-    return (object as any).dispose !== undefined
-  }
-
-  const { updateRef } = useEvents()
-  $: updateRef(ref)
+  const events = useEvents()
+  $: events.updateRef(ref)
 </script>
 
 {#if isDisposableObject(ref)}
