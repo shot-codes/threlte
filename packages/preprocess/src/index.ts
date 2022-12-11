@@ -1,5 +1,5 @@
 import { preprocess, parse, walk } from 'svelte/compiler'
-import MagicString from 'magic-string'
+import MagicString, { SourceMap } from 'magic-string'
 import * as THREE from 'three'
 
 type ImportMap = Record<
@@ -40,6 +40,7 @@ const preprocessMarkup = (
   transformOptions?: PreprocessOptions
 ): {
   markup: string
+  map?: SourceMap
 } => {
   const prefix = transformOptions?.prefix ? `${transformOptions?.prefix}.` : 'T.'
 
@@ -172,7 +173,8 @@ const preprocessMarkup = (
   }
 
   return {
-    markup: markup.toString()
+    markup: markup.toString(),
+    map: markup.generateMap()
   }
 }
 
@@ -196,10 +198,11 @@ export const preprocessThrelte = (
 ): Parameters<typeof preprocess>[1] => {
   return {
     markup: ({ content }) => {
-      const { markup } = preprocessMarkup(content, options)
+      const { markup, map } = preprocessMarkup(content, options)
 
       return {
-        code: markup
+        code: markup,
+        map
       }
     }
   }
