@@ -72,6 +72,13 @@
 	{/key}
 </svelte:head>
 
+<a
+	href="https://next.threlte.xyz"
+	class="w-full h-[80px] bg-brand absolute flex flex-col justify-center items-center text-white font-bold hover:bg-[hsl(15,100%,55%)]"
+>
+	<div>Visit the Documentation of the upcoming Threlte 6.</div>
+</a>
+
 <KitDocs meta={mergedMeta}>
 	<KitDocsLayout {navbar} {sidebar} search>
 		<div slot="sidebar-top">

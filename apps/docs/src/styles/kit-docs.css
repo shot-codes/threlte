@@ -372,3 +372,7 @@ nav ul > li > a > svg {
 .btn-sticky.active {
 	@apply bg-brand text-white;
 }
+
+.kit-docs > div:nth-child(2) {
+	@apply !pt-[80px];
+}
