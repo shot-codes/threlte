@@ -8,7 +8,9 @@
   } from '@dimforge/rapier3d-compat'
   import { T, useFrame } from '@threlte/core'
   import { Collider, CollisionGroups, RigidBody, useRapier } from '@threlte/rapier'
+  import { mapRange } from '@tweakpane/core'
   import { Euler, Group, Quaternion, Vector3 } from 'three'
+  import { clamp } from 'three/src/math/MathUtils'
 
   const { world } = useRapier()
 
@@ -40,6 +42,10 @@
    */
 
   const carWeight = 1500
+  /**
+   * In units/s
+   */
+  const maxDesiredVelocity = 45
 
   // spawn car from the air
   const spawnHeight = 0.1
@@ -64,8 +70,23 @@
   const wheelBase = 2.7
 
   const suspensionForceMultiplier = 1000
-  const forwardForceMultiplier = 50
-  const sideTorqueMultiplier = 50
+  const forwardForceMultiplier = 400
+  const sideTorqueMultiplier = 200
+  const sidewaysForceMultiplier = 100
+
+  /**
+   * Steering torque is only applied if the velocity is above this threshold.
+   */
+  const steeringVelocityThreshold = 0.5
+  const steeringMap = (t: number) => {
+    if (t < 0.25) return ((1 - 0) / (0.25 - 0)) * (t - 0) + 0
+    return ((0 - 1) / (1 - 0.25)) * (t - 0.25) + 1
+  }
+
+  const angularDamping = 3
+  const angularDampingWhenBelowSteeringVelocityThreshold = 10
+  const angularDampingWhenInAir = 12
+  const linearDamping = 0.3
 
   /**
    * -------------------------------------------------------
@@ -159,6 +180,25 @@
     }
   }
 
+  const localPositionToWorld = (
+    worldPosition: RapierVector,
+    worldRotation: RapierRotation,
+    localVector: RapierVector
+  ) => {
+    tempVectorA.set(localVector.x, localVector.y, localVector.z)
+    tempVectorA.applyQuaternion(
+      tempQuaternionA.set(worldRotation.x, worldRotation.y, worldRotation.z, worldRotation.w)
+    )
+    tempVectorB.set(worldPosition.x, worldPosition.y, worldPosition.z)
+    tempVectorB.add(tempVectorA)
+
+    return {
+      x: tempVectorB.x,
+      y: tempVectorB.y,
+      z: tempVectorB.z
+    }
+  }
+
   const getWheelOnGroundVector = (
     wheel: Wheel,
     carCenter: RapierVector,
@@ -182,25 +222,28 @@
     z: 0
   }
 
+  $: if (rigidBody) rigidBody.setAngularDamping(angularDamping)
+  $: if (rigidBody) rigidBody.setLinearDamping(linearDamping)
+
   useFrame((_, delta) => {
     if (!rigidBody || !collider) return
 
-    const now = performance.now()
+    const currentWorldPosition = rigidBody.translation()
+    const currentWorldRotation = rigidBody.rotation()
 
-    const currentTranslation = rigidBody.translation()
-    const currentRotation = rigidBody.rotation()
+    let finalAngularDamping = angularDamping
 
     // update the inner group position and rotation
     if (group) {
-      group.position.x = currentTranslation.x
-      group.position.y = currentTranslation.y
-      group.position.z = currentTranslation.z
+      group.position.x = currentWorldPosition.x
+      group.position.y = currentWorldPosition.y
+      group.position.z = currentWorldPosition.z
       tempEulerA.setFromQuaternion(
         tempQuaternionA.set(
-          currentRotation.x,
-          currentRotation.y,
-          currentRotation.z,
-          currentRotation.w
+          currentWorldRotation.x,
+          currentWorldRotation.y,
+          currentWorldRotation.z,
+          currentWorldRotation.w
         )
       )
       group.rotation.x = tempEulerA.x
@@ -208,17 +251,17 @@
       group.rotation.z = tempEulerA.z
     }
 
-    tempVectorA
-      .set(0, -1, 0)
-      .applyQuaternion(
-        tempQuaternionA.set(
-          currentRotation.x,
-          currentRotation.y,
-          currentRotation.z,
-          currentRotation.w
-        )
-      )
-    const rayDir = {
+    // convert the ray dir to world space
+    const localRayDirection = { x: 0, y: -1, z: 0 }
+    tempQuaternionA.set(
+      currentWorldRotation.x,
+      currentWorldRotation.y,
+      currentWorldRotation.z,
+      currentWorldRotation.w
+    )
+    tempVectorA.set(localRayDirection.x, localRayDirection.y, localRayDirection.z)
+    tempVectorA.applyQuaternion(tempQuaternionA)
+    const worldRayDirection = {
       x: tempVectorA.x,
       y: tempVectorA.y,
       z: tempVectorA.z
@@ -226,8 +269,8 @@
 
     Object.values(wheelStates).forEach((wheelState) => {
       const ray = new Ray(
-        getRayOrigin(wheelState.type, currentTranslation, currentRotation),
-        rayDir
+        getRayOrigin(wheelState.type, currentWorldPosition, currentWorldRotation),
+        worldRayDirection
       )
       const hit = world.castRayAndGetNormal(
         ray,
@@ -238,8 +281,6 @@
         collider,
         rigidBody
       )
-      if (wheelState.type === Wheel.FL) {
-      }
 
       if (hit) {
         // save surfaceImpactPoint
@@ -257,8 +298,8 @@
 
         const wheelOnGroundVector = getWheelOnGroundVector(
           wheelState.type,
-          currentTranslation,
-          currentRotation,
+          currentWorldPosition,
+          currentWorldRotation,
           hit.toi
         )
 
@@ -268,58 +309,102 @@
           true
         )
 
-        // forward force
-        // use the direction of currentRotation to apply force
-        const quat = tempQuaternionA.set(
-          currentRotation.x,
-          currentRotation.y,
-          currentRotation.z,
-          currentRotation.w
-        )
-        tempVectorA.set(1 * yAxis * forwardForceMultiplier, 0, 0).applyQuaternion(quat)
-
-        rigidBody.applyImpulseAtPoint(
-          {
-            x: tempVectorA.x,
-            y: 0,
-            z: tempVectorA.z
-          },
-          {
-            x: currentTranslation.x,
-            y: currentTranslation.y - 0.3,
-            z: currentTranslation.z
-          },
-          true
-        )
-
         // update wheel state
         wheelState.suspensionLength = hit.toi
-
-        // steering torque
-        const sideTorque = xAxis * sideTorqueMultiplier
-        rigidBody.applyTorqueImpulse({ x: 0, y: sideTorque, z: 0 }, true)
-
-        // side impulse
-        // get sideways component of current frame velocity
-        const currentVelocity = rigidBody.linvel()
-        const currentVelocityVector = new Vector3(
-          currentVelocity.x,
-          currentVelocity.y,
-          currentVelocity.z
-        )
-        const currentVelocityVectorNormalized = currentVelocityVector.normalize()
-        const currentVelocityVectorNormalizedDot = currentVelocityVectorNormalized.dot(
-          new Vector3(1, 0, 0)
-        )
-        ;(window as any).dot = currentVelocityVector
       } else {
         wheelState.onGround = false
       }
     })
 
-    carState.lastPosition.set(currentTranslation.x, currentTranslation.y, currentTranslation.z)
+    // forward force
+    // use the direction of currentRotation to apply force
+    const quat = tempQuaternionA.set(
+      currentWorldRotation.x,
+      currentWorldRotation.y,
+      currentWorldRotation.z,
+      currentWorldRotation.w
+    )
+    tempVectorA.set(1 * yAxis * forwardForceMultiplier, 0, 0).applyQuaternion(quat)
 
-    const elapsed = performance.now() - now
+    rigidBody.applyImpulseAtPoint(
+      {
+        x: tempVectorA.x,
+        y: 0,
+        z: tempVectorA.z
+      },
+      localPositionToWorld(currentWorldPosition, currentWorldRotation, { x: 0, y: -0.3, z: 0 }),
+      true
+    )
+
+    // steering torque
+    // get the linear velocity of the car
+    const linearVelocity = rigidBody.linvel()
+    tempVectorA.set(linearVelocity.x, linearVelocity.y, linearVelocity.z)
+    // get the velocity of the car as a number
+    const velocity = tempVectorA.length()
+    // if the velocity is greater than the threshold, apply torque
+    if (velocity > steeringVelocityThreshold) {
+      finalAngularDamping = angularDamping
+      // the side torque is a function of the velocity multiplied by the
+      // steering input and a multiplier
+      const sideTorque =
+        xAxis *
+        sideTorqueMultiplier *
+        steeringMap(clamp(mapRange(velocity, 0, maxDesiredVelocity, 0, 1), 0, 1))
+      rigidBody.applyTorqueImpulse({ x: 0, y: sideTorque, z: 0 }, true)
+    } else {
+      // if we're not moving, reset the angular velocity
+      finalAngularDamping = angularDampingWhenBelowSteeringVelocityThreshold
+    }
+
+    // side impulse
+    // get sideways component of local frame velocity
+    const currentVelocity = rigidBody.linvel()
+    tempVectorA.set(currentVelocity.x, currentVelocity.y, currentVelocity.z)
+
+    tempQuaternionA.set(
+      currentWorldRotation.x,
+      currentWorldRotation.y,
+      currentWorldRotation.z,
+      currentWorldRotation.w
+    )
+
+    const currentVelocityDot = tempVectorB
+      .set(0, 0, -1)
+      .applyQuaternion(tempQuaternionA)
+      .dot(tempVectorA)
+    ;(window as any).dot = currentVelocityDot
+
+    const sidewaysImpulse = tempVectorB
+      .set(0, 0, 1)
+      .applyQuaternion(tempQuaternionA)
+      .multiplyScalar(currentVelocityDot)
+      .multiplyScalar(sidewaysForceMultiplier)
+
+    rigidBody.applyImpulseAtPoint(
+      {
+        x: sidewaysImpulse.x,
+        y: 0,
+        z: sidewaysImpulse.z
+      },
+      localPositionToWorld(currentWorldPosition, currentWorldRotation, { x: 0, y: -0.3, z: 0 }),
+      true
+    )
+
+    // if the car is not touching the ground, set the angular damping
+    // to a higher value to prevent the car from spinning out of control
+    if (!Object.values(wheelStates).some((wheelState) => wheelState.onGround)) {
+      finalAngularDamping = angularDampingWhenInAir
+    }
+
+    // set the angular damping
+    rigidBody.setAngularDamping(finalAngularDamping)
+
+    carState.lastPosition.set(
+      currentWorldPosition.x,
+      currentWorldPosition.y,
+      currentWorldPosition.z
+    )
   })
 </script>
 
