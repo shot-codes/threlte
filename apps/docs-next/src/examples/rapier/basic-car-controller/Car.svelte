@@ -23,6 +23,8 @@
   let collider: RapierCollider
   let group: Group
 
+  let type: 'fixed' | 'dynamic' = 'fixed'
+
   const steeringAngle = spring(0)
 
   enum Wheel {
@@ -62,27 +64,27 @@
   const maxDesiredVelocity = 75
 
   // spawn car from the air
-  const spawnHeight = 5
+  const spawnHeight = 0.2
 
   // const suspensionMountHeightRelativeToCarFloor = 0
-  const suspensionStiffness = 0.5
-  const suspensionDamping = 0.03
+  const suspensionStiffness = 0.8
+  const suspensionDamping = 0.05
 
   // ~ VW Passat dimensions
-  const carBodyHeight = 1.12
-  const carBodyWidth = 1.9
+  const carBodyHeight = 1.08
+  const carBodyWidth = 1.85
   const carBodyLength = 4.5
 
   // 16 inch wheels have ~0.2m radius
   const wheelRadius = 0.306
 
   // racing cars have ~0.05m ground clearance
-  const maxGroundClearance = 0.25
+  const maxGroundClearance = 0.05
 
   // ~ VW Passat wheelbase
-  const wheelBase = 2.56
+  const wheelBase = 2.62
 
-  const suspensionImpulseMultiplier = 1600
+  const suspensionImpulseMultiplier = 1800
   const forwardImpulseMultiplier = 800
   const forwardImpulseMap = (_t: number) => 1
   const brakeImpulseMultiplier = 1400
@@ -586,7 +588,12 @@
 </script>
 
 <svelte:window
-  on:keypress={({ key }) => {
+  on:keypress={(e) => {
+    const { key, code } = e
+    if (code === 'Space') {
+      e.preventDefault()
+      type = 'dynamic'
+    }
     if (key === 'r') {
       const currentTranslation = rigidBody.translation()
       if (!rigidBody) return
@@ -637,7 +644,7 @@
 <T.Group position.y={carBodyHeight / 2 + maxGroundClearance + spawnHeight}>
   <RigidBody
     canSleep={false}
-    type="dynamic"
+    {type}
     bind:rigidBody
   >
     <Collider

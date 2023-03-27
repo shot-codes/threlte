@@ -5,6 +5,7 @@
   import Car from './Car.svelte'
   import Level from './Level/Level.svelte'
   import MuscleCar from './MuscleCar.svelte'
+  import Amgone from './Amgone.svelte'
   import MuscleCarWheel from './MuscleCarWheel.svelte'
   import type { CarState } from './types'
 
@@ -48,15 +49,17 @@
     position.y={3}
     fov={70}
     makeDefault
-  />
+  >
+    <!-- <OrbitControls /> -->
+  </T.PerspectiveCamera>
 
   <svelte:fragment
     slot="body"
     let:carState
   >
-    <MuscleCar
+    <Amgone
       isBraking={carState.isBraking}
-      rotation.y={(-90 * Math.PI) / 180}
+      rotation.y={(90 * Math.PI) / 180}
     />
   </svelte:fragment>
 
