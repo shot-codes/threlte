@@ -12,6 +12,16 @@
     text: "Use the 'wasd' keys to drive",
     lineCount: 3
   })
+  pane.addBlade({
+    view: 'text',
+    text: "Press 'r' to reset the car",
+    lineCount: 3
+  })
+  pane.addBlade({
+    view: 'text',
+    text: "Press 'o' to toggle debug mode",
+    lineCount: 3
+  })
 
   let debug = false
 </script>
