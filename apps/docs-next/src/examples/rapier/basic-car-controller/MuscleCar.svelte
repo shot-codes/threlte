@@ -55,6 +55,7 @@ Command: npx @threlte/gltf@1.0.0-next.0 ./muscle-car.glb -T -t
         castShadow
         geometry={$gltf.nodes.Cube_1.geometry}
         material={$gltf.materials.Material}
+        material.color="#FE3D00"
       />
       <T.Mesh
         castShadow

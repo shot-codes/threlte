@@ -12,7 +12,7 @@
 <Floor />
 
 <T.Group
-  position.x={-15}
+  position.x={-25}
   position.y={-4}
   rotation.z={(-15 * Math.PI) / 180}
 >
@@ -33,7 +33,7 @@
 </T.Group>
 
 <T.Group
-  position.x={-20}
+  position.x={-30}
   position.y={-2}
   rotation.z={(-30 * Math.PI) / 180}
 >
@@ -54,7 +54,7 @@
 </T.Group>
 
 <T.Group
-  position.x={-80}
+  position.x={-95}
   position.y={15}
   rotation.z={(-10 * Math.PI) / 180}
 >

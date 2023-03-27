@@ -14,5 +14,6 @@ export default class Car extends SvelteComponentTyped<
     'wheel-rl': { ref: Group }
     'wheel-rr': { ref: Group }
     body: { carState: CarState }
+    camera: {}
   }
 > {}
