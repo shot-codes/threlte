@@ -61,7 +61,7 @@
   // spawn car from the air
   const spawnHeight = 0.1
 
-  const suspensionMountHeightRelativeToCarFloor = 0.6
+  // const suspensionMountHeightRelativeToCarFloor = 0
   const suspensionStiffness = 0.85
   const suspensionDamping = 0.05
 
@@ -76,6 +76,7 @@
   // racing cars have ~0.05m ground clearance
   const groundClearanceWhenCompressed = 0.05
   const groundClearanceWhenExtended = 0.2
+  const maxGroundClearance = 0.3
 
   // ~ VW Passat wheelbase
   const wheelBase = 2.7
@@ -110,11 +111,11 @@
    */
 
   // the total length of the suspension travel
-  const suspensionTravel = groundClearanceWhenExtended - groundClearanceWhenCompressed
-  const suspensionLengthExtended =
-    suspensionMountHeightRelativeToCarFloor + groundClearanceWhenExtended
-  const suspensionLengthCompressed =
-    suspensionMountHeightRelativeToCarFloor - groundClearanceWhenCompressed
+  const suspensionTravel = maxGroundClearance
+  // const suspensionLengthExtended =
+  //   suspensionMountHeightRelativeToCarFloor + groundClearanceWhenExtended
+  // const suspensionLengthCompressed =
+  //   suspensionMountHeightRelativeToCarFloor - groundClearanceWhenCompressed
 
   const defaultRay = new Ray({ x: 0, y: 0, z: 0 }, { x: 0, y: -1, z: 0 })
 
@@ -122,25 +123,25 @@
     FL: {
       type: Wheel.FL,
       onGround: false,
-      suspensionLength: suspensionLengthExtended,
+      suspensionLength: maxGroundClearance,
       ray: defaultRay
     },
     FR: {
       type: Wheel.FR,
       onGround: false,
-      suspensionLength: suspensionLengthExtended,
+      suspensionLength: maxGroundClearance,
       ray: defaultRay
     },
     RL: {
       type: Wheel.RL,
       onGround: false,
-      suspensionLength: suspensionLengthExtended,
+      suspensionLength: maxGroundClearance,
       ray: defaultRay
     },
     RR: {
       type: Wheel.RR,
       onGround: false,
-      suspensionLength: suspensionLengthExtended,
+      suspensionLength: maxGroundClearance,
       ray: defaultRay
     }
   }
@@ -185,8 +186,8 @@
 
     const localRayOrigin = {
       x: isFront ? wheelBase / 2 : -wheelBase / 2,
-      y: -carBodyHeight / 2 + suspensionMountHeightRelativeToCarFloor,
-      z: (isLeft ? carBodyWidth / 2 : -carBodyWidth / 2) + (isLeft ? 0.05 : -0.05)
+      y: -carBodyHeight / 2,
+      z: isLeft ? carBodyWidth / 2 : -carBodyWidth / 2
     }
 
     // calculate the world ray origin
@@ -201,9 +202,6 @@
       )
     )
     tempVectorB.add(tempVectorA)
-
-    if (wheel === Wheel.FL) {
-    }
 
     return {
       x: tempVectorB.x,
@@ -231,23 +229,12 @@
     }
   }
 
-  const getWheelOnGroundVector = (
-    wheel: Wheel,
-    carCenter: RapierVector,
-    carRotation: RapierRotation,
-    suspensionLength: number
-  ) => {
-    const origin = getRayOriginForWheel(wheel, carCenter, carRotation)
-    origin.y =
-      carCenter.y - carBodyHeight / 2 + suspensionMountHeightRelativeToCarFloor + suspensionLength
-    if (wheel === Wheel.FL) {
-    }
-    return origin
-  }
-
   let xAxis = 0
   let yAxis = 0
 
+  /**
+   * Returns the angle of a quaternion on a given axis.
+   */
   const trueAxisAngle = (axis: 'z' | 'y' | 'x', quaternion: Quaternion) => {
     let direction = new Vector3(0, 0, 1)
     let origin = new Vector3(0, 0, 1)
@@ -270,6 +257,10 @@
     if (axis == 'z' && direction.y < 0) angle = (360 * Math.PI) / 180 - angle
 
     return angle
+  }
+
+  const rapierVectorToThreeVector = (vector: RapierVector, threeVector: Vector3) => {
+    threeVector.set(vector.x, vector.y, vector.z)
   }
 
   useFrame((_, delta) => {
@@ -319,7 +310,7 @@
       wheelState.ray = ray
       const hit = world.castRayAndGetNormal(
         ray,
-        suspensionLengthExtended,
+        suspensionTravel,
         true,
         undefined,
         undefined,
@@ -337,19 +328,20 @@
          * -----------------------------------------
          */
         const suspensionForce =
-          suspensionStiffness * (suspensionLengthExtended - hit.toi) +
+          suspensionStiffness * (suspensionTravel - hit.toi) +
           (suspensionDamping * (wheelState.suspensionLength - hit.toi)) / delta
 
-        const wheelOnGroundVector = getWheelOnGroundVector(
-          wheelState.type,
-          currentWorldPosition,
-          currentWorldRotation,
-          hit.toi
-        )
+        rapierVectorToThreeVector(ray.pointAt(1), tempVectorA)
+        rapierVectorToThreeVector(ray.origin, tempVectorB)
+        // the result vector is already normalized
+        tempVectorB
+          .sub(tempVectorA)
+          .multiplyScalar(suspensionForce)
+          .multiplyScalar(suspensionForceMultiplier)
 
         rigidBody.applyImpulseAtPoint(
-          { x: 0, y: suspensionForce * suspensionForceMultiplier, z: 0 },
-          wheelOnGroundVector,
+          { x: tempVectorB.x, y: tempVectorB.y, z: tempVectorB.z },
+          ray.pointAt(hit.toi),
           true
         )
 
@@ -360,8 +352,10 @@
       }
     })
 
-    // forward impulse, side impulse and steering torque is only applied when
-    // the car is touching the ground!
+    /**
+     * forward impulse, side impulse and steering torque is only applied when
+     * the car is touching the ground!
+     */
     if (Object.values(wheelStates).some((wheelState) => wheelState.onGround)) {
       /**
        * -----------------------------------------
@@ -554,7 +548,7 @@
     wheelState.ray.origin.z
   )}
   {@const direction = new Vector3(wheelState.ray.dir.x, wheelState.ray.dir.y, wheelState.ray.dir.z)}
-  <T.ArrowHelper args={[direction, origin, wheelState.suspensionLength, 0xff0000]} />
+  <T.ArrowHelper args={[direction, origin, wheelState.suspensionLength, 0xff0000, 0.05, 0.05]} />
   <HTML position={origin.toArray()}>
     <div class="-translate-x-1/2 -translate-y-1/2">
       {wheelState.suspensionLength.toFixed(2)}
