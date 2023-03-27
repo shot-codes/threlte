@@ -1,10 +1,16 @@
 <script lang="ts">
-  import { T } from '@threlte/core'
-  import { OrbitControls, Environment } from '@threlte/extras'
+  import { T, useThrelte } from '@threlte/core'
+  import { OrbitControls, Environment, Portal } from '@threlte/extras'
   import { DEG2RAD } from 'three/src/math/MathUtils'
   import Car from './Car.svelte'
   import Level from './Level/Level.svelte'
+  import MuscleCar from './MuscleCar.svelte'
   import MuscleCarWheel from './MuscleCarWheel.svelte'
+  import type { CarState } from './types'
+
+  let carState: CarState
+
+  const { scene } = useThrelte()
 </script>
 
 <Environment
@@ -12,19 +18,29 @@
   files="shanghai_riverside_1k.hdr"
 />
 
-<T.DirectionalLight
-  intensity={0.4}
-  position={[8, 20, -3]}
-/>
-
-<!-- <T.AmbientLight
-  intensity={0.2}
-  position={[8, 20, -3]}
-/> -->
+{#if carState}
+  <T.DirectionalLight
+    intensity={0.4}
+    position.x={carState.worldPosition.x + 8}
+    position.y={carState.worldPosition.y + 20}
+    position.z={carState.worldPosition.z - 3}
+    castShadow
+    let:ref
+  >
+    <Portal object={scene}>
+      <T
+        is={ref.target}
+        position.x={carState.worldPosition.x}
+        position.y={carState.worldPosition.y}
+        position.z={carState.worldPosition.z}
+      />
+    </Portal>
+  </T.DirectionalLight>
+{/if}
 
 <Level />
 
-<Car>
+<Car bind:carState>
   <T.PerspectiveCamera
     rotation={[-90 * DEG2RAD, 70 * DEG2RAD, 90 * DEG2RAD]}
     position.x={8}
@@ -32,8 +48,18 @@
     fov={70}
     makeDefault
   >
-    <OrbitControls />
+    <!-- <OrbitControls /> -->
   </T.PerspectiveCamera>
+
+  <svelte:fragment
+    slot="body"
+    let:carState
+  >
+    <MuscleCar
+      isBraking={carState.isBraking}
+      rotation.y={(-90 * Math.PI) / 180}
+    />
+  </svelte:fragment>
 
   <MuscleCarWheel
     rotation.y={(90 * Math.PI) / 180}
@@ -51,32 +77,4 @@
     rotation.y={(90 * Math.PI) / 180}
     slot="wheel-rr"
   />
-  <!-- <T.Mesh
-    slot="wheel-fl"
-    rotation.x={(-90 * Math.PI) / 180}
-  >
-    <T.CylinderGeometry args={[0.306, 0.306, 0.2, 32]} />
-    <T.MeshStandardMaterial />
-  </T.Mesh>
-  <T.Mesh
-    slot="wheel-fr"
-    rotation.x={(-90 * Math.PI) / 180}
-  >
-    <T.CylinderGeometry args={[0.306, 0.306, 0.2, 32]} />
-    <T.MeshStandardMaterial />
-  </T.Mesh>
-  <T.Mesh
-    slot="wheel-rl"
-    rotation.x={(-90 * Math.PI) / 180}
-  >
-    <T.CylinderGeometry args={[0.306, 0.306, 0.2, 32]} />
-    <T.MeshStandardMaterial />
-  </T.Mesh>
-  <T.Mesh
-    slot="wheel-rr"
-    rotation.x={(-90 * Math.PI) / 180}
-  >
-    <T.CylinderGeometry args={[0.306, 0.306, 0.2, 32]} />
-    <T.MeshStandardMaterial />
-  </T.Mesh> -->
 </Car>

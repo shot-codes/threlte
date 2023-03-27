@@ -40,14 +40,17 @@ Command: npx @threlte/gltf@1.0.0-next.0 ./muscle-car-wheel.glb -T -t
   >
     <T.Group scale={0.37}>
       <T.Mesh
+        castShadow
         geometry={$gltf.nodes.Cube002.geometry}
         material={$gltf.materials['Material.001']}
       />
       <T.Mesh
+        castShadow
         geometry={$gltf.nodes.Cube002_1.geometry}
         material={$gltf.materials['Material.002']}
       />
       <T.Mesh
+        castShadow
         geometry={$gltf.nodes.Cube002_2.geometry}
         material={$gltf.materials['Material.007']}
       />

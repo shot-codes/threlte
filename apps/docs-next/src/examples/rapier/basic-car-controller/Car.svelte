@@ -8,17 +8,17 @@
     Vector as RapierVector
   } from '@dimforge/rapier3d-compat'
   import { T, useFrame, useLoader } from '@threlte/core'
-  import { Text, useGltf } from '@threlte/extras'
+  import { Text } from '@threlte/extras'
   import { Collider, RigidBody, useRapier } from '@threlte/rapier'
   import { mapRange } from '@tweakpane/core'
   import { spring } from 'svelte/motion'
   import { Euler, Group, Quaternion, TextureLoader, Vector3 } from 'three'
   import { clamp } from 'three/src/math/MathUtils'
+  import MuscleCar from './MuscleCar.svelte'
+  import type { CarState } from './types'
   import { length, normalize } from './vectorUtils'
 
   const { world } = useRapier()
-
-  const model = useGltf('/assets/basic-vehicle-controller/muscle-car.glb')
 
   const map = useLoader(TextureLoader).load(
     '/assets/basic-vehicle-controller/prototype-textures/Green/texture_10.png'
@@ -47,35 +47,6 @@
     surfaceImpactPoint: RapierVector
     surfaceImpactNormal: RapierVector
     wheelGroup: Group
-  }
-
-  type CarState = {
-    isForward: boolean
-    isBraking: boolean
-    velocity: number
-    lastPosition: Vector3
-    /**
-     * in radians
-     */
-    steeringAngle: number
-    // FORWARD IMPULSE
-    forwardImpulse: {
-      origin: { x: number; y: number; z: number }
-      direction: { x: number; y: number; z: number }
-      length: number
-    }
-    // STEERING TORQUE
-    steeringTorque: {
-      origin: { x: number; y: number; z: number }
-      direction: { x: number; y: number; z: number }
-      length: number
-    }
-    // SIDE IMPULSE
-    sideImpulse: {
-      origin: { x: number; y: number; z: number }
-      direction: { x: number; y: number; z: number }
-      length: number
-    }
   }
 
   /**
@@ -195,10 +166,10 @@
     }
   }
 
-  const carState: CarState = {
+  export const carState: CarState = {
     isForward: false,
     isBraking: false,
-    lastPosition: new Vector3(),
+    worldPosition: new Vector3(),
     steeringAngle: 0,
     forwardImpulse: {
       direction: { x: 0, y: 0, z: 0 },
@@ -494,6 +465,7 @@
       const multiplier = mode === 'accelerate' ? forwardImpulseMultiplier : brakeImpulseMultiplier
       const map = mode === 'accelerate' ? forwardImpulseMap : brakeImpulseMap
 
+      carState.isBraking = mode === 'brake'
       ;(window as any).mode = mode
       ;(window as any).yAxis = yAxis
 
@@ -605,7 +577,7 @@
     rigidBody.setAngularDamping(finalAngularDamping)
     rigidBody.setLinearDamping(finalLinearDamping)
 
-    carState.lastPosition.set(
+    carState.worldPosition.set(
       currentWorldPosition.x,
       currentWorldPosition.y,
       currentWorldPosition.z
@@ -656,35 +628,10 @@
       shape="cuboid"
       args={[carBodyLength / 2, carBodyHeight / 2, carBodyWidth / 2]}
     >
-      {#if $model}
-        <T
-          rotation.y={(-90 * Math.PI) / 180}
-          is={$model.scene}
-          scale={1}
-        />
-      {/if}
-
-      <!-- <T.Mesh position.y={-carBodyHeight / 4}>
-        <T.BoxGeometry args={[carBodyLength, carBodyHeight / 2, carBodyWidth]} />
-        {#if $map}
-          <T.MeshStandardMaterial
-            map={$map}
-            transparent
-            opacity={0.6}
-          />
-        {/if}
-      </T.Mesh>
-
-      <T.Mesh position.y={carBodyHeight / 4}>
-        <T.BoxGeometry args={[carBodyLength / 2, carBodyHeight / 2, (carBodyWidth * 4) / 5]} />
-        {#if $map}
-          <T.MeshStandardMaterial
-            map={$map}
-            transparent
-            opacity={0.6}
-          />
-        {/if}
-      </T.Mesh> -->
+      <slot
+        name="body"
+        {carState}
+      />
 
       {#if debug}
         <!-- Helper Arrows showing suspension rays -->
