@@ -85,7 +85,7 @@
   const suspensionImpulseMultiplier = 1600
   const forwardImpulseMultiplier = 800
   const forwardImpulseMap = (_t: number) => 1
-  const brakeImpulseMultiplier = 2000
+  const brakeImpulseMultiplier = 1400
   const brakeImpulseMap = (_t: number) => 1
   const steeringTorqueMultiplier = 250
   const sideImpulseMultiplier = 140
@@ -604,8 +604,11 @@
       const currentRotation = rigidBody.rotation()
       setFromRapierRotation(currentRotation, tempQuaternionA)
       const axisYAngle = trueAxisAngle('y', tempQuaternionA)
-			tempQuaternionA.identity().setFromAxisAngle(new Vector3(0,1,0), axisYAngle)
-      rigidBody.setRotation({ x: tempQuaternionA.x, y: tempQuaternionA.y, z: tempQuaternionA.z, w: tempQuaternionA.w }, true)
+      tempQuaternionA.identity().setFromAxisAngle(new Vector3(0, 1, 0), axisYAngle)
+      rigidBody.setRotation(
+        { x: tempQuaternionA.x, y: tempQuaternionA.y, z: tempQuaternionA.z, w: tempQuaternionA.w },
+        true
+      )
     }
     if (key === 'o') {
       debug = !debug
@@ -645,10 +648,12 @@
       shape="cuboid"
       args={[carBodyLength / 2, carBodyHeight / 2, carBodyWidth / 2]}
     >
-      <slot
-        name="body"
-        {carState}
-      />
+      {#if !debug}
+        <slot
+          name="body"
+          {carState}
+        />
+      {/if}
 
       {#if debug}
         <!-- Helper Arrows showing suspension rays -->
@@ -709,15 +714,17 @@
     </Collider>
   </RigidBody>
 
-  <T.Group
-    bind:ref={group}
-    let:ref
-  >
-    <slot
-      name="camera"
-      {ref}
-    />
-  </T.Group>
+  {#if !debug}
+    <T.Group
+      bind:ref={group}
+      let:ref
+    >
+      <slot
+        name="camera"
+        {ref}
+      />
+    </T.Group>
+  {/if}
 </T.Group>
 
 {#if debug && Object.values(wheelStates).some((wheelState) => wheelState.onGround)}
