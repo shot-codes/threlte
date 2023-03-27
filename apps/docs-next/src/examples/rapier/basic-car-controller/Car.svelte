@@ -7,6 +7,7 @@
     Vector as RapierVector
   } from '@dimforge/rapier3d-compat'
   import { T, useFrame, useLoader } from '@threlte/core'
+  import { HTML } from '@threlte/extras'
   import { Collider, RigidBody, useRapier } from '@threlte/rapier'
   import { mapRange } from '@tweakpane/core'
   import { spring } from 'svelte/motion'
@@ -34,6 +35,7 @@
     type: Wheel
     onGround: boolean
     suspensionLength: number
+    ray: Ray
   }
 
   type CarState = {
@@ -78,7 +80,7 @@
   // ~ VW Passat wheelbase
   const wheelBase = 2.7
 
-  const suspensionForceMultiplier = 1000
+  const suspensionForceMultiplier = 800
   const forwardForceMultiplier = 400
   const sideTorqueMultiplier = 200
   const sidewaysForceMultiplier = 100
@@ -99,7 +101,7 @@
   const linearDamping = 0.3
   const linearDampingWhenInAir = 0.1
 
-  const virtualCenterOfMass = new Vector3(-0.1, -0.3, 0)
+  const virtualCenterOfMass = new Vector3(-0.1, -0.4, 0)
 
   /**
    * -------------------------------------------------------
@@ -114,26 +116,32 @@
   const suspensionLengthCompressed =
     suspensionMountHeightRelativeToCarFloor - groundClearanceWhenCompressed
 
-  const wheelStates: Record<Wheel, WheelState> = {
+  const defaultRay = new Ray({ x: 0, y: 0, z: 0 }, { x: 0, y: -1, z: 0 })
+
+  let wheelStates: Record<Wheel, WheelState> = {
     FL: {
       type: Wheel.FL,
       onGround: false,
-      suspensionLength: suspensionLengthExtended
+      suspensionLength: suspensionLengthExtended,
+      ray: defaultRay
     },
     FR: {
       type: Wheel.FR,
       onGround: false,
-      suspensionLength: suspensionLengthExtended
+      suspensionLength: suspensionLengthExtended,
+      ray: defaultRay
     },
     RL: {
       type: Wheel.RL,
       onGround: false,
-      suspensionLength: suspensionLengthExtended
+      suspensionLength: suspensionLengthExtended,
+      ray: defaultRay
     },
     RR: {
       type: Wheel.RR,
       onGround: false,
-      suspensionLength: suspensionLengthExtended
+      suspensionLength: suspensionLengthExtended,
+      ray: defaultRay
     }
   }
 
@@ -308,6 +316,7 @@
         getRayOriginForWheel(wheelState.type, currentWorldPosition, currentWorldRotation),
         worldRayDirection
       )
+      wheelState.ray = ray
       const hit = world.castRayAndGetNormal(
         ray,
         suspensionLengthExtended,
@@ -478,6 +487,9 @@
       currentWorldPosition.y,
       currentWorldPosition.z
     )
+
+    // tell svelte to update stuff
+    wheelStates = wheelStates
   })
 </script>
 
@@ -514,7 +526,7 @@
       shape="cuboid"
       args={[carBodyLength / 2, carBodyHeight / 2, carBodyWidth / 2]}
     >
-      <T.Mesh position.y={-carBodyHeight / 4}>
+      <!-- <T.Mesh position.y={-carBodyHeight / 4}>
         <T.BoxGeometry args={[carBodyLength, carBodyHeight / 2, carBodyWidth]} />
         {#if $map}
           <T.MeshStandardMaterial map={$map} />
@@ -526,7 +538,7 @@
         {#if $map}
           <T.MeshStandardMaterial map={$map} />
         {/if}
-      </T.Mesh>
+      </T.Mesh> -->
     </Collider>
   </RigidBody>
 
@@ -534,3 +546,18 @@
     <slot />
   </T.Group>
 </T.Group>
+
+{#each Object.values(wheelStates) as wheelState}
+  {@const origin = new Vector3(
+    wheelState.ray.origin.x,
+    wheelState.ray.origin.y,
+    wheelState.ray.origin.z
+  )}
+  {@const direction = new Vector3(wheelState.ray.dir.x, wheelState.ray.dir.y, wheelState.ray.dir.z)}
+  <T.ArrowHelper args={[direction, origin, wheelState.suspensionLength, 0xff0000]} />
+  <HTML position={origin.toArray()}>
+    <div class="-translate-x-1/2 -translate-y-1/2">
+      {wheelState.suspensionLength.toFixed(2)}
+    </div>
+  </HTML>
+{/each}
