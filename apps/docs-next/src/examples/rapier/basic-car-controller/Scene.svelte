@@ -42,14 +42,13 @@
 
 <Car bind:carState>
   <T.PerspectiveCamera
+    slot="camera"
     rotation={[-90 * DEG2RAD, 70 * DEG2RAD, 90 * DEG2RAD]}
     position.x={8}
     position.y={3}
     fov={70}
     makeDefault
-  >
-    <!-- <OrbitControls /> -->
-  </T.PerspectiveCamera>
+  />
 
   <svelte:fragment
     slot="body"

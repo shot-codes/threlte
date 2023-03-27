@@ -7,22 +7,17 @@
     Rotation,
     Vector as RapierVector
   } from '@dimforge/rapier3d-compat'
-  import { T, useFrame, useLoader } from '@threlte/core'
+  import { T, useFrame } from '@threlte/core'
   import { Text } from '@threlte/extras'
   import { Collider, RigidBody, useRapier } from '@threlte/rapier'
   import { mapRange } from '@tweakpane/core'
   import { spring } from 'svelte/motion'
-  import { Euler, Group, Quaternion, TextureLoader, Vector3 } from 'three'
+  import { Euler, Group, Quaternion, Vector3 } from 'three'
   import { clamp } from 'three/src/math/MathUtils'
-  import MuscleCar from './MuscleCar.svelte'
   import type { CarState } from './types'
   import { length, normalize } from './vectorUtils'
 
   const { world } = useRapier()
-
-  const map = useLoader(TextureLoader).load(
-    '/assets/basic-vehicle-controller/prototype-textures/Green/texture_10.png'
-  )
 
   let rigidBody: RapierRigidBody
   let collider: RapierCollider
@@ -67,7 +62,7 @@
   const maxDesiredVelocity = 75
 
   // spawn car from the air
-  const spawnHeight = 1
+  const spawnHeight = 5
 
   // const suspensionMountHeightRelativeToCarFloor = 0
   const suspensionStiffness = 0.5
@@ -346,7 +341,7 @@
     // update the inner group position and rotation
     if (group) {
       group.position.x = currentWorldPosition.x
-      group.position.y = currentWorldPosition.y
+      group.position.y = currentWorldPosition.y - spawnHeight
       group.position.z = currentWorldPosition.z
       setFromRapierRotation(currentWorldRotation, tempQuaternionA)
       group.rotation.y = trueAxisAngle('y', tempQuaternionA)
@@ -592,6 +587,26 @@
 
 <svelte:window
   on:keypress={({ key }) => {
+    if (key === 'r') {
+      const currentTranslation = rigidBody.translation()
+      if (!rigidBody) return
+      rigidBody.setTranslation(
+        {
+          x: currentTranslation.x,
+          y: carBodyHeight / 2 + maxGroundClearance + spawnHeight,
+          z: currentTranslation.z
+        },
+        true
+      )
+      rigidBody.setAngvel({ x: 0, y: 0, z: 0 }, true)
+      rigidBody.setLinvel({ x: 0, y: 0, z: 0 }, true)
+
+      const currentRotation = rigidBody.rotation()
+      setFromRapierRotation(currentRotation, tempQuaternionA)
+      const axisYAngle = trueAxisAngle('y', tempQuaternionA)
+			tempQuaternionA.identity().setFromAxisAngle(new Vector3(0,1,0), axisYAngle)
+      rigidBody.setRotation({ x: tempQuaternionA.x, y: tempQuaternionA.y, z: tempQuaternionA.z, w: tempQuaternionA.w }, true)
+    }
     if (key === 'o') {
       debug = !debug
     }
@@ -623,6 +638,8 @@
     bind:rigidBody
   >
     <Collider
+      restitution={0.8}
+      friction={0.2}
       mass={carWeight}
       bind:collider
       shape="cuboid"
@@ -696,7 +713,10 @@
     bind:ref={group}
     let:ref
   >
-    <slot {ref} />
+    <slot
+      name="camera"
+      {ref}
+    />
   </T.Group>
 </T.Group>
 
