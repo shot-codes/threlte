@@ -6,13 +6,18 @@
     Rotation as RapierRotation,
     Vector as RapierVector
   } from '@dimforge/rapier3d-compat'
-  import { T, useFrame } from '@threlte/core'
-  import { Collider, CollisionGroups, RigidBody, useRapier } from '@threlte/rapier'
+  import { T, useFrame, useLoader } from '@threlte/core'
+  import { Collider, RigidBody, useRapier } from '@threlte/rapier'
   import { mapRange } from '@tweakpane/core'
-  import { Euler, Group, Quaternion, Vector3 } from 'three'
+  import { spring } from 'svelte/motion'
+  import { Euler, Group, Quaternion, TextureLoader, Vector3 } from 'three'
   import { clamp } from 'three/src/math/MathUtils'
 
   const { world } = useRapier()
+
+  const map = useLoader(TextureLoader).load(
+    '/assets/basic-vehicle-controller/prototype-textures/Green/texture_10.png'
+  )
 
   let rigidBody: RapierRigidBody
   let collider: RapierCollider
@@ -33,6 +38,10 @@
 
   type CarState = {
     lastPosition: Vector3
+    /**
+     * in radians
+     */
+    steeringAngle: number
   }
 
   /**
@@ -77,16 +86,20 @@
   /**
    * Steering torque is only applied if the velocity is above this threshold.
    */
-  const steeringVelocityThreshold = 0.5
+  const steeringVelocityThreshold = 0.3
   const steeringMap = (t: number) => {
     if (t < 0.25) return ((1 - 0) / (0.25 - 0)) * (t - 0) + 0
-    return ((0 - 1) / (1 - 0.25)) * (t - 0.25) + 1
+    return ((0.25 - 1) / (1 - 0.25)) * (t - 0.25) + 1
   }
 
   const angularDamping = 3
-  const angularDampingWhenBelowSteeringVelocityThreshold = 10
-  const angularDampingWhenInAir = 12
+  const angularDampingWhenBelowSteeringVelocityThreshold = 40
+  const angularDampingWhenInAir = 2
+
   const linearDamping = 0.3
+  const linearDampingWhenInAir = 0.1
+
+  const virtualCenterOfMass = new Vector3(-0.1, -0.3, 0)
 
   /**
    * -------------------------------------------------------
@@ -125,25 +138,36 @@
   }
 
   const carState: CarState = {
-    lastPosition: new Vector3()
+    lastPosition: new Vector3(),
+    steeringAngle: 0
   }
 
-  // temp vectors
+  const steeringAngle = spring(0)
+  $: steeringAngle.set((xAxis * 35 * Math.PI) / 180)
+
+  /**
+   * -------------------------------------------------------
+   * TEMP VARIABLES
+   * -------------------------------------------------------
+   */
   const tempVectorA = new Vector3()
   const tempVectorB = new Vector3()
   const tempVectorC = new Vector3()
 
-  // temp eulers
   const tempEulerA = new Euler()
   const tempEulerB = new Euler()
   const tempEulerC = new Euler()
 
-  // temp quaternion
   const tempQuaternionA = new Quaternion()
   const tempQuaternionB = new Quaternion()
   const tempQuaternionC = new Quaternion()
+  /**
+   * -------------------------------------------------------
+   * TEMP VARIABLES END
+   * -------------------------------------------------------
+   */
 
-  const getRayOrigin = (
+  const getRayOriginForWheel = (
     wheel: Wheel,
     carWorldPosition: RapierVector,
     carWorldRotation: RapierRotation
@@ -205,7 +229,7 @@
     carRotation: RapierRotation,
     suspensionLength: number
   ) => {
-    const origin = getRayOrigin(wheel, carCenter, carRotation)
+    const origin = getRayOriginForWheel(wheel, carCenter, carRotation)
     origin.y =
       carCenter.y - carBodyHeight / 2 + suspensionMountHeightRelativeToCarFloor + suspensionLength
     if (wheel === Wheel.FL) {
@@ -216,14 +240,29 @@
   let xAxis = 0
   let yAxis = 0
 
-  let innerGroupPosition = {
-    x: 0,
-    y: 0,
-    z: 0
-  }
+  const trueAxisAngle = (axis: 'z' | 'y' | 'x', quaternion: Quaternion) => {
+    let direction = new Vector3(0, 0, 1)
+    let origin = new Vector3(0, 0, 1)
+    if (axis == 'z') {
+      direction.set(1, 0, 0)
+      origin.set(1, 0, 0)
+    }
+    direction.applyQuaternion(quaternion)
 
-  $: if (rigidBody) rigidBody.setAngularDamping(angularDamping)
-  $: if (rigidBody) rigidBody.setLinearDamping(linearDamping)
+    direction.x = axis == 'x' ? 0 : direction.x
+    direction.y = axis == 'y' ? 0 : direction.y
+    direction.z = axis == 'z' ? 0 : direction.z
+
+    direction.normalize()
+
+    let angle = origin.angleTo(direction)
+
+    if (axis == 'x' && direction.y > 0) angle = (360 * Math.PI) / 180 - angle
+    if (axis == 'y' && direction.x < 0) angle = (360 * Math.PI) / 180 - angle
+    if (axis == 'z' && direction.y < 0) angle = (360 * Math.PI) / 180 - angle
+
+    return angle
+  }
 
   useFrame((_, delta) => {
     if (!rigidBody || !collider) return
@@ -232,23 +271,20 @@
     const currentWorldRotation = rigidBody.rotation()
 
     let finalAngularDamping = angularDamping
+    let finalLinearDamping = linearDamping
 
     // update the inner group position and rotation
     if (group) {
       group.position.x = currentWorldPosition.x
       group.position.y = currentWorldPosition.y
       group.position.z = currentWorldPosition.z
-      tempEulerA.setFromQuaternion(
-        tempQuaternionA.set(
-          currentWorldRotation.x,
-          currentWorldRotation.y,
-          currentWorldRotation.z,
-          currentWorldRotation.w
-        )
+      tempQuaternionA.set(
+        currentWorldRotation.x,
+        currentWorldRotation.y,
+        currentWorldRotation.z,
+        currentWorldRotation.w
       )
-      group.rotation.x = tempEulerA.x
-      group.rotation.y = tempEulerA.y
-      group.rotation.z = tempEulerA.z
+      group.rotation.y = trueAxisAngle('y', tempQuaternionA)
     }
 
     // convert the ray dir to world space
@@ -269,7 +305,7 @@
 
     Object.values(wheelStates).forEach((wheelState) => {
       const ray = new Ray(
-        getRayOrigin(wheelState.type, currentWorldPosition, currentWorldRotation),
+        getRayOriginForWheel(wheelState.type, currentWorldPosition, currentWorldRotation),
         worldRayDirection
       )
       const hit = world.castRayAndGetNormal(
@@ -283,15 +319,14 @@
       )
 
       if (hit) {
-        // save surfaceImpactPoint
-        const surfaceImpactPoint = ray.pointAt(hit.toi)
-        // save surfaceImpactNormal
-        const surfaceImpactNormal = hit.normal
-
         // wheel is touching the ground
         wheelState.onGround = true
 
-        // suspension force
+        /**
+         * -----------------------------------------
+         * SUSPENSION IMPULSE
+         * -----------------------------------------
+         */
         const suspensionForce =
           suspensionStiffness * (suspensionLengthExtended - hit.toi) +
           (suspensionDamping * (wheelState.suspensionLength - hit.toi)) / delta
@@ -316,89 +351,127 @@
       }
     })
 
-    // forward force
-    // use the direction of currentRotation to apply force
-    const quat = tempQuaternionA.set(
-      currentWorldRotation.x,
-      currentWorldRotation.y,
-      currentWorldRotation.z,
-      currentWorldRotation.w
-    )
-    tempVectorA.set(1 * yAxis * forwardForceMultiplier, 0, 0).applyQuaternion(quat)
+    // forward impulse, side impulse and steering torque is only applied when
+    // the car is touching the ground!
+    if (Object.values(wheelStates).some((wheelState) => wheelState.onGround)) {
+      /**
+       * -----------------------------------------
+       * FORWARD IMPULSE
+       * -----------------------------------------
+       */
+      // use the direction of currentRotation to apply force
+      const quat = tempQuaternionA.set(
+        currentWorldRotation.x,
+        currentWorldRotation.y,
+        currentWorldRotation.z,
+        currentWorldRotation.w
+      )
+      tempVectorA.set(1 * yAxis * forwardForceMultiplier, 0, 0).applyQuaternion(quat)
 
-    rigidBody.applyImpulseAtPoint(
-      {
-        x: tempVectorA.x,
-        y: 0,
-        z: tempVectorA.z
-      },
-      localPositionToWorld(currentWorldPosition, currentWorldRotation, { x: 0, y: -0.3, z: 0 }),
-      true
-    )
+      rigidBody.applyImpulseAtPoint(
+        {
+          x: tempVectorA.x,
+          y: 0,
+          z: tempVectorA.z
+        },
+        localPositionToWorld(currentWorldPosition, currentWorldRotation, virtualCenterOfMass),
+        true
+      )
 
-    // steering torque
-    // get the linear velocity of the car
-    const linearVelocity = rigidBody.linvel()
-    tempVectorA.set(linearVelocity.x, linearVelocity.y, linearVelocity.z)
-    // get the velocity of the car as a number
-    const velocity = tempVectorA.length()
-    // if the velocity is greater than the threshold, apply torque
-    if (velocity > steeringVelocityThreshold) {
-      finalAngularDamping = angularDamping
-      // the side torque is a function of the velocity multiplied by the
-      // steering input and a multiplier
-      const sideTorque =
-        xAxis *
-        sideTorqueMultiplier *
-        steeringMap(clamp(mapRange(velocity, 0, maxDesiredVelocity, 0, 1), 0, 1))
-      rigidBody.applyTorqueImpulse({ x: 0, y: sideTorque, z: 0 }, true)
+      /**
+       * -----------------------------------------
+       * STEERING TORQUE
+       * -----------------------------------------
+       */
+      // get the linear velocity of the car
+      const linearVelocity = rigidBody.linvel()
+      tempVectorA.set(linearVelocity.x, linearVelocity.y, linearVelocity.z)
+      // get the velocity of the car as a number
+      const velocity = tempVectorA.length()
+      // if the velocity is greater than the threshold, apply torque
+      if (velocity > steeringVelocityThreshold) {
+        // we're moving, so set the angular damping to the default
+        finalAngularDamping = angularDamping
+
+        // we need to figure out if we're moving forward or backward
+        // to do this, we'll get the dot product of the velocity and the
+        // forward vector of the car
+        // if the dot product is positive, we're moving forward
+        // if the dot product is negative, we're moving backward
+        // if the dot product is 0, we're not moving
+        const currentVelocity = rigidBody.linvel()
+        tempVectorA.set(currentVelocity.x, currentVelocity.y, currentVelocity.z)
+
+        tempQuaternionA.set(
+          currentWorldRotation.x,
+          currentWorldRotation.y,
+          currentWorldRotation.z,
+          currentWorldRotation.w
+        )
+
+        const isForward =
+          tempVectorB.set(-1, 0, 0).applyQuaternion(tempQuaternionA).dot(tempVectorA) > 0
+
+        // the side torque is a function of the velocity multiplied by the
+        // steering input and a multiplier
+        const sideTorque =
+          (isForward ? xAxis : -xAxis) *
+          sideTorqueMultiplier *
+          steeringMap(clamp(mapRange(velocity, 0, maxDesiredVelocity, 0, 1), 0, 1))
+        rigidBody.applyTorqueImpulse({ x: 0, y: sideTorque, z: 0 }, true)
+      } else {
+        // if we're not moving, reset the angular velocity
+        finalAngularDamping = angularDampingWhenBelowSteeringVelocityThreshold
+      }
+
+      /**
+       * -----------------------------------------
+       * SIDEWAYS IMPULSE
+       * -----------------------------------------
+       */
+      // get sideways component of local frame velocity
+      const currentVelocity = rigidBody.linvel()
+      tempVectorA.set(currentVelocity.x, currentVelocity.y, currentVelocity.z)
+
+      tempQuaternionA.set(
+        currentWorldRotation.x,
+        currentWorldRotation.y,
+        currentWorldRotation.z,
+        currentWorldRotation.w
+      )
+
+      const currentVelocityDot = tempVectorB
+        .set(0, 0, -1)
+        .applyQuaternion(tempQuaternionA)
+        .dot(tempVectorA)
+
+      const sidewaysImpulse = tempVectorB
+        .set(0, 0, 1)
+        .applyQuaternion(tempQuaternionA)
+        .multiplyScalar(currentVelocityDot)
+        .multiplyScalar(sidewaysForceMultiplier)
+
+      rigidBody.applyImpulseAtPoint(
+        {
+          x: sidewaysImpulse.x,
+          y: 0,
+          z: sidewaysImpulse.z
+        },
+        localPositionToWorld(currentWorldPosition, currentWorldRotation, virtualCenterOfMass),
+        true
+      )
+
+      // we're on the ground, so set the linear damping to the default
+      finalLinearDamping = linearDamping
     } else {
-      // if we're not moving, reset the angular velocity
-      finalAngularDamping = angularDampingWhenBelowSteeringVelocityThreshold
-    }
-
-    // side impulse
-    // get sideways component of local frame velocity
-    const currentVelocity = rigidBody.linvel()
-    tempVectorA.set(currentVelocity.x, currentVelocity.y, currentVelocity.z)
-
-    tempQuaternionA.set(
-      currentWorldRotation.x,
-      currentWorldRotation.y,
-      currentWorldRotation.z,
-      currentWorldRotation.w
-    )
-
-    const currentVelocityDot = tempVectorB
-      .set(0, 0, -1)
-      .applyQuaternion(tempQuaternionA)
-      .dot(tempVectorA)
-    ;(window as any).dot = currentVelocityDot
-
-    const sidewaysImpulse = tempVectorB
-      .set(0, 0, 1)
-      .applyQuaternion(tempQuaternionA)
-      .multiplyScalar(currentVelocityDot)
-      .multiplyScalar(sidewaysForceMultiplier)
-
-    rigidBody.applyImpulseAtPoint(
-      {
-        x: sidewaysImpulse.x,
-        y: 0,
-        z: sidewaysImpulse.z
-      },
-      localPositionToWorld(currentWorldPosition, currentWorldRotation, { x: 0, y: -0.3, z: 0 }),
-      true
-    )
-
-    // if the car is not touching the ground, set the angular damping
-    // to a higher value to prevent the car from spinning out of control
-    if (!Object.values(wheelStates).some((wheelState) => wheelState.onGround)) {
+      // we're in the air, so set the dampings appropriately
+      finalLinearDamping = linearDampingWhenInAir
       finalAngularDamping = angularDampingWhenInAir
     }
 
-    // set the angular damping
+    // set the dampings
     rigidBody.setAngularDamping(finalAngularDamping)
+    rigidBody.setLinearDamping(finalLinearDamping)
 
     carState.lastPosition.set(
       currentWorldPosition.x,
@@ -429,38 +502,35 @@
   }}
 />
 
-<CollisionGroups groups={[15]}>
-  <T.Group position.y={carBodyHeight / 2 + groundClearanceWhenExtended + spawnHeight}>
-    <RigidBody
-      canSleep={false}
-      type="dynamic"
-      bind:rigidBody
+<T.Group position.y={carBodyHeight / 2 + groundClearanceWhenExtended + spawnHeight}>
+  <RigidBody
+    canSleep={false}
+    type="dynamic"
+    bind:rigidBody
+  >
+    <Collider
+      mass={carWeight}
+      bind:collider
+      shape="cuboid"
+      args={[carBodyLength / 2, carBodyHeight / 2, carBodyWidth / 2]}
     >
-      <Collider
-        mass={carWeight}
-        bind:collider
-        shape="cuboid"
-        args={[carBodyLength / 2, carBodyHeight / 2, carBodyWidth / 2]}
-      >
-        <T.Mesh position.y={-carBodyHeight / 4}>
-          <T.BoxGeometry args={[carBodyLength, carBodyHeight / 2, carBodyWidth]} />
-          <T.MeshStandardMaterial color="red" />
-        </T.Mesh>
+      <T.Mesh position.y={-carBodyHeight / 4}>
+        <T.BoxGeometry args={[carBodyLength, carBodyHeight / 2, carBodyWidth]} />
+        {#if $map}
+          <T.MeshStandardMaterial map={$map} />
+        {/if}
+      </T.Mesh>
 
-        <T.Mesh position.y={carBodyHeight / 4}>
-          <T.BoxGeometry args={[carBodyLength / 2, carBodyHeight / 2, (carBodyWidth * 4) / 5]} />
-          <T.MeshStandardMaterial color="red" />
-        </T.Mesh>
-      </Collider>
-    </RigidBody>
+      <T.Mesh position.y={carBodyHeight / 4}>
+        <T.BoxGeometry args={[carBodyLength / 2, carBodyHeight / 2, (carBodyWidth * 4) / 5]} />
+        {#if $map}
+          <T.MeshStandardMaterial map={$map} />
+        {/if}
+      </T.Mesh>
+    </Collider>
+  </RigidBody>
 
-    <T.Group
-      bind:ref={group}
-      position.x={innerGroupPosition.x}
-      position.y={innerGroupPosition.y}
-      position.z={innerGroupPosition.z}
-    >
-      <slot />
-    </T.Group>
+  <T.Group bind:ref={group}>
+    <slot />
   </T.Group>
-</CollisionGroups>
+</T.Group>

@@ -4,11 +4,11 @@
   import { RepeatWrapping, TextureLoader } from 'three'
 
   const map = useLoader(TextureLoader).load(
-    '/assets/basic-vehicle-controller/prototype-textures/Orange/texture_08.png',
+    '/assets/basic-vehicle-controller/prototype-textures/Dark/texture_08.png',
     {
       transform(result) {
         result.wrapS = result.wrapT = RepeatWrapping
-        result.repeat.set(10, 10)
+        result.repeat.set(20, 20)
       }
     }
   )
@@ -20,10 +20,10 @@
 >
   <Collider
     shape="cuboid"
-    args={[50, 0.5, 50]}
+    args={[100, 0.5, 100]}
   >
     <T.Mesh>
-      <T.BoxGeometry args={[100, 1, 100]} />
+      <T.BoxGeometry args={[200, 1, 200]} />
       {#if $map}
         <T.MeshStandardMaterial map={$map} />
       {/if}
