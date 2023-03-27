@@ -1,6 +1,7 @@
 import type { Events, Props, Slots } from '@threlte/core'
 import { SvelteComponentTyped } from 'svelte'
 import type { Group } from 'three'
+import type { CarState } from './types'
 
 export type CarProps = Props<Group>
 
@@ -12,5 +13,6 @@ export default class Car extends SvelteComponentTyped<
     'wheel-fr': { ref: Group }
     'wheel-rl': { ref: Group }
     'wheel-rr': { ref: Group }
+    body: { carState: CarState }
   }
 > {}

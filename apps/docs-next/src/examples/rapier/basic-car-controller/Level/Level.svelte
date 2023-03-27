@@ -20,7 +20,10 @@
     shape="cuboid"
     args={[5, 5, 5]}
   >
-    <T.Mesh>
+    <T.Mesh
+      castShadow
+      receiveShadow
+    >
       <T.BoxGeometry args={[10, 10, 10]} />
       {#if $map}
         <T.MeshStandardMaterial map={$map} />
@@ -38,7 +41,31 @@
     shape="cuboid"
     args={[5, 5, 5]}
   >
-    <T.Mesh>
+    <T.Mesh
+      castShadow
+      receiveShadow
+    >
+      <T.BoxGeometry args={[10, 10, 10]} />
+      {#if $map}
+        <T.MeshStandardMaterial map={$map} />
+      {/if}
+    </T.Mesh>
+  </Collider>
+</T.Group>
+
+<T.Group
+  position.x={-80}
+  position.y={15}
+  rotation.z={(-10 * Math.PI) / 180}
+>
+  <Collider
+    shape="cuboid"
+    args={[5, 5, 5]}
+  >
+    <T.Mesh
+      castShadow
+      receiveShadow
+    >
       <T.BoxGeometry args={[10, 10, 10]} />
       {#if $map}
         <T.MeshStandardMaterial map={$map} />

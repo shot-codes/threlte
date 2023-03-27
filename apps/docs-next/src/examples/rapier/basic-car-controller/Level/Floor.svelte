@@ -22,7 +22,7 @@
     shape="cuboid"
     args={[200, 0.5, 200]}
   >
-    <T.Mesh>
+    <T.Mesh receiveShadow>
       <T.BoxGeometry args={[400, 1, 400]} />
       {#if $map}
         <T.MeshStandardMaterial map={$map} />
