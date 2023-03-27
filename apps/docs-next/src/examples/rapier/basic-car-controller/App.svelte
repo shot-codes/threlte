@@ -12,16 +12,28 @@
     text: "Use the 'wasd' keys to drive",
     lineCount: 3
   })
+
+  let debug = false
 </script>
+
+<svelte:window
+  on:keypress={({ key }) => {
+    if (key === 'o') {
+      debug = !debug
+    }
+  }}
+/>
 
 <div use:action />
 
 <Canvas>
   <World>
-    <Debug
-      depthTest={false}
-      depthWrite={false}
-    />
+    {#if debug}
+      <Debug
+        depthTest={false}
+        depthWrite={false}
+      />
+    {/if}
 
     <Scene />
 
