@@ -8,7 +8,7 @@
     {
       transform(result) {
         result.wrapS = result.wrapT = RepeatWrapping
-        result.repeat.set(20, 20)
+        result.repeat.set(40, 40)
       }
     }
   )
@@ -20,10 +20,10 @@
 >
   <Collider
     shape="cuboid"
-    args={[100, 0.5, 100]}
+    args={[200, 0.5, 200]}
   >
     <T.Mesh>
-      <T.BoxGeometry args={[200, 1, 200]} />
+      <T.BoxGeometry args={[400, 1, 400]} />
       {#if $map}
         <T.MeshStandardMaterial map={$map} />
       {/if}
