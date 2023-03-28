@@ -1,8 +1,7 @@
 <script lang="ts">
-  import { useTweakpane } from '../../utils/useTweakpane'
   import { Canvas } from '@threlte/core'
-  import { HTML } from '@threlte/extras'
   import { Debug, World } from '@threlte/rapier'
+  import { useTweakpane } from '../../utils/useTweakpane'
   import Scene from './Scene.svelte'
 
   const { action, pane } = useTweakpane()
@@ -44,19 +43,7 @@
         depthWrite={false}
       />
     {/if}
-
     <Scene />
-
-    <HTML
-      slot="fallback"
-      transform
-    >
-      <p>
-        It seems your browser<br />
-        doesn't support WASM.<br />
-        I'm sorry.
-      </p>
-    </HTML>
   </World>
 </Canvas>
 

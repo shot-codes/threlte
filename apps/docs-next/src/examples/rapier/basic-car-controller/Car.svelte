@@ -106,10 +106,12 @@
 
   const angularDamping = 4
   const angularDampingWhenBelowSteeringVelocityThreshold = 40
-  const angularDampingWhenInAir = 2
+  const angularDampingWhenInAir = 0.1
+  const angularDampingWhenBrakingInAir = 14
 
   const linearDamping = 0.3
   const linearDampingWhenInAir = 0.1
+  const linearDampingWhenBrakingInAir = 0.5
 
   const virtualCenterOfMass = new Vector3(0.15, -0.25, 0)
   /**
@@ -557,9 +559,18 @@
       // we're on the ground, so set the linear damping to the default
       finalLinearDamping = linearDamping
     } else {
-      // we're in the air, so set the dampings appropriately
-      finalLinearDamping = linearDampingWhenInAir
-      finalAngularDamping = angularDampingWhenInAir
+      // we also set carState.isBraking based on the yAxis
+      carState.isBraking = yAxis > 0
+
+      // if braking mid-air, the car can be stopped rotating and moving slightly
+      if (carState.isBraking) {
+        finalLinearDamping = linearDampingWhenBrakingInAir
+        finalAngularDamping = angularDampingWhenBrakingInAir
+      } else {
+        // we're in the air, so set the dampings appropriately
+        finalLinearDamping = linearDampingWhenInAir
+        finalAngularDamping = angularDampingWhenInAir
+      }
     }
 
     // even if we're airborn, we still set the steering angle

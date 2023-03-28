@@ -1,6 +1,6 @@
 <script lang="ts">
   import { T, useThrelte } from '@threlte/core'
-  import { OrbitControls, Environment, Portal } from '@threlte/extras'
+  import { Environment, Portal } from '@threlte/extras'
   import { DEG2RAD } from 'three/src/math/MathUtils'
   import Car from './Car.svelte'
   import Level from './Level/Level.svelte'
