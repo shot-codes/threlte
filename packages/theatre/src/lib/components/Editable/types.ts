@@ -15,6 +15,7 @@ export type Props<T extends UnknownShorthandCompoundProps> = {
     scale?: number
   }
   read?: () => void
+  object?: ISheetObject<T>
 } & Record<string, AutoProp | any>
 
 export type Slots<T extends UnknownShorthandCompoundProps> = {

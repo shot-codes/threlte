@@ -145,7 +145,7 @@
   const sheetId = sheet.address.sheetId
   const instanceId = sheet.address.sheetInstanceId
 
-  const object =
+  export const object =
     globalObjects.get(`${projectId}-${sheetId}-${instanceId}-${name}`) ??
     sheet.object(name, {
       ...parsedProps,
@@ -294,6 +294,7 @@
     rotate: (snap?.rotate ?? 45) * DEG2RAD,
     scale: snap?.scale ?? 0.1
   } as Record<Mode, number | null>
+	let space: 'local' | 'world' = 'local'
 
   const onKeyPress = (e: KeyboardEvent) => {
     if (e.key === 't') {
@@ -305,6 +306,13 @@
     if (e.key === 's') {
       mode = 'scale'
     }
+		if (e.key === 'g') {
+			if (space === 'local') {
+				space = 'world'
+			} else {
+				space = 'local'
+			}
+		}
   }
 
   const onKeyDown = (e: KeyboardEvent) => {
@@ -329,6 +337,7 @@
     translationSnap={snapActive ? snapValues.translate : null}
     rotationSnap={snapActive ? snapValues.rotate : null}
     scaleSnap={snapActive ? snapValues.scale : null}
+    {space}
     on:change={onChange}
     on:mouseDown={onMouseDown}
     on:mouseUp={onMouseUp}
