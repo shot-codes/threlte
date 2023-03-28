@@ -172,5 +172,5 @@
 </script>
 
 <SceneGraphObject {object}>
-  <slot />
+  <slot {collider} />
 </SceneGraphObject>

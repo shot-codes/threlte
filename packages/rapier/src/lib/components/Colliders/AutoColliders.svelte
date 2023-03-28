@@ -6,6 +6,7 @@
   } from '@dimforge/rapier3d-compat'
   import { SceneGraphObject } from '@threlte/core'
   import { createEventDispatcher, onDestroy, onMount } from 'svelte'
+  import { get_current_component } from 'svelte/internal'
   import { Group } from 'three'
   import { useCollisionGroups } from '../../hooks/useCollisionGroups'
   import { useHasEventListeners } from '../../hooks/useHasEventListener'
@@ -56,58 +57,66 @@
 
   const { hasEventListeners: colliderHasEventListeners } = useHasEventListeners<typeof dispatcher>()
 
-  onMount(() => {
-    colliders = createCollidersFromChildren(group, shape ?? 'convexHull', world, rigidBody)
-    colliders.forEach((c) => addColliderToContext(c, group, dispatcher))
-    collisionGroups.registerColliders(colliders)
-  })
-
-  $: {
-    if (colliders.length > 0) {
-      colliders.forEach((collider) => {
-        applyColliderActiveEvents(
-          collider,
-          colliderHasEventListeners,
-          rigidBody?.userData?.hasEventListeners
-        )
-        collider.setActiveCollisionTypes(ActiveCollisionTypes.ALL)
-        collider.setRestitution(restitution ?? 0)
-        collider.setRestitutionCombineRule(restitutionCombineRule ?? CoefficientCombineRule.Average)
-        collider.setFriction(friction ?? 0.7)
-        collider.setFrictionCombineRule(frictionCombineRule ?? CoefficientCombineRule.Average)
-        collider.setSensor(sensor ?? false)
-        collider.setContactForceEventThreshold(contactForceEventThreshold ?? 0)
-        if (density) collider.setDensity(density)
-        if (mass) {
-          if (centerOfMass && principalAngularInertia && angularInertiaLocalFrame)
-            collider.setMassProperties(
-              mass,
-              { x: centerOfMass[0], y: centerOfMass[1], z: centerOfMass[2] },
-              {
-                x: principalAngularInertia[0],
-                y: principalAngularInertia[1],
-                z: principalAngularInertia[2]
-              },
-              eulerToQuaternion(angularInertiaLocalFrame)
-            )
-          else collider.setMass(mass)
-        }
-      })
-    }
-  }
-
-  /**
-   * Cleanup
-   */
-  onDestroy(() => {
+  const cleanup = () => {
     collisionGroups.removeColliders(colliders)
     colliders.forEach((c) => {
       removeColliderFromContext(c)
       world.removeCollider(c, true)
     })
+  }
+
+  export const create = () => {
+    cleanup()
+    colliders = createCollidersFromChildren(group, shape ?? 'convexHull', world, rigidBody)
+    colliders.forEach((c) => addColliderToContext(c, group, dispatcher))
+
+    collisionGroups.registerColliders(colliders)
+
+    colliders.forEach((collider) => {
+      applyColliderActiveEvents(
+        collider,
+        colliderHasEventListeners,
+        rigidBody?.userData?.hasEventListeners
+      )
+      collider.setActiveCollisionTypes(ActiveCollisionTypes.ALL)
+      collider.setRestitution(restitution ?? 0)
+      collider.setRestitutionCombineRule(restitutionCombineRule ?? CoefficientCombineRule.Average)
+      collider.setFriction(friction ?? 0.7)
+      collider.setFrictionCombineRule(frictionCombineRule ?? CoefficientCombineRule.Average)
+      collider.setSensor(sensor ?? false)
+      collider.setContactForceEventThreshold(contactForceEventThreshold ?? 0)
+      if (density) collider.setDensity(density)
+      if (mass) {
+        if (centerOfMass && principalAngularInertia && angularInertiaLocalFrame)
+          collider.setMassProperties(
+            mass,
+            { x: centerOfMass[0], y: centerOfMass[1], z: centerOfMass[2] },
+            {
+              x: principalAngularInertia[0],
+              y: principalAngularInertia[1],
+              z: principalAngularInertia[2]
+            },
+            eulerToQuaternion(angularInertiaLocalFrame)
+          )
+        else collider.setMass(mass)
+      }
+    })
+  }
+
+  onMount(() => {
+    create()
   })
+
+  export const refresh = () => {
+    create()
+  }
+
+  /**
+   * Cleanup
+   */
+  onDestroy(cleanup)
 </script>
 
 <SceneGraphObject object={group}>
-  <slot {colliders} />
+  <slot {colliders} {refresh} />
 </SceneGraphObject>

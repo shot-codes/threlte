@@ -14,6 +14,7 @@ type BaseProps = {
   sensor?: boolean
   colliders?: Collider[]
   contactForceEventThreshold?: number
+  refresh?: () => void
 }
 
 // ------------------ MASS ------------------
@@ -65,6 +66,15 @@ type MassProps<TMassDef extends MassDef> = TMassDef extends Density
 
 export type AutoCollidersProps<TMassDef extends MassDef> = BaseProps & MassProps<TMassDef>
 
+type AutoCollidersSlots = {
+  default: {
+    colliders: Collider[]
+    refresh: () => void
+  }
+}
+
 export default class AutoColliders<TMassDef extends MassDef> extends SvelteComponentTyped<
-  AutoCollidersProps<TMassDef>
+  AutoCollidersProps<TMassDef>,
+  Record<string, unknown>,
+  AutoCollidersSlots
 > {}

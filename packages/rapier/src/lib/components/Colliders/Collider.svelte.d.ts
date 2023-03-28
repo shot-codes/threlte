@@ -1,6 +1,6 @@
 import type {
   CoefficientCombineRule,
-  Collider as rapierCollider,
+  Collider as RapierCollider,
   ColliderDesc
 } from '@dimforge/rapier3d-compat'
 import { SvelteComponentTyped } from 'svelte'
@@ -14,7 +14,7 @@ type BaseProps = {
   friction?: number
   frictionCombineRule?: CoefficientCombineRule
   sensor?: boolean
-  collider?: rapierCollider
+  collider?: RapierCollider
   contactForceEventThreshold?: number
 }
 
@@ -95,7 +95,17 @@ export type ColliderProps<TShape extends Shape, TMassDef extends MassDef> = Base
   ShapeProps<TShape> &
   MassProps<TMassDef>
 
+export type ColliderSlots = {
+  default: {
+    collider: RapierCollider
+  }
+}
+
 export default class Collider<
   TShape extends Shape,
   TMassDef extends MassDef
-> extends SvelteComponentTyped<ColliderProps<TShape, TMassDef>> {}
+> extends SvelteComponentTyped<
+  ColliderProps<TShape, TMassDef>,
+  Record<string, unknown>,
+  ColliderSlots
+> {}
