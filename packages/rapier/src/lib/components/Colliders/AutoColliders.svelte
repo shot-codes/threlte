@@ -4,9 +4,8 @@
     CoefficientCombineRule,
     type Collider
   } from '@dimforge/rapier3d-compat'
-  import { SceneGraphObject } from '@threlte/core'
-  import { createEventDispatcher, onDestroy, onMount } from 'svelte'
-  import { get_current_component } from 'svelte/internal'
+  import { createRawEventDispatcher, SceneGraphObject } from '@threlte/core'
+  import { onDestroy, onMount } from 'svelte'
   import { Group } from 'three'
   import { useCollisionGroups } from '../../hooks/useCollisionGroups'
   import { useHasEventListeners } from '../../hooks/useHasEventListener'
@@ -53,7 +52,7 @@
   type $$Events = {
     [key in keyof ColliderEventMap]: CustomEvent<ColliderEventMap[key]>
   }
-  const dispatcher = createEventDispatcher<ColliderEventMap>()
+  const dispatcher = createRawEventDispatcher<ColliderEventMap>()
 
   const { hasEventListeners: colliderHasEventListeners } = useHasEventListeners<typeof dispatcher>()
 

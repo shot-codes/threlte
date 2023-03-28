@@ -5,8 +5,8 @@
     Collider,
     ColliderDesc
   } from '@dimforge/rapier3d-compat'
-  import { SceneGraphObject, useFrame } from '@threlte/core'
-  import { createEventDispatcher, onDestroy, onMount, tick } from 'svelte'
+  import { createRawEventDispatcher, SceneGraphObject, useFrame } from '@threlte/core'
+  import { onDestroy, onMount, tick } from 'svelte'
   import { Object3D, Quaternion, Vector3 } from 'three'
   import { useCollisionGroups } from '../../hooks/useCollisionGroups'
   import { useHasEventListeners } from '../../hooks/useHasEventListener'
@@ -59,7 +59,7 @@
   type $$Events = {
     [key in keyof ColliderEventMap]: CustomEvent<ColliderEventMap[key]>
   }
-  const dispatcher = createEventDispatcher<ColliderEventMap>()
+  const dispatcher = createRawEventDispatcher<ColliderEventMap>()
 
   /**
    * Actual collider setup happens onMount as only then

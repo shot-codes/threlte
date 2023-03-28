@@ -1,11 +1,10 @@
 <script lang="ts">
   import type { RigidBody } from '@dimforge/rapier3d-compat'
-  import { SceneGraphObject } from '@threlte/core'
-  import { createEventDispatcher, onDestroy, setContext, tick } from 'svelte'
+  import { createRawEventDispatcher, SceneGraphObject } from '@threlte/core'
+  import { onDestroy, setContext, tick } from 'svelte'
   import { Object3D, Vector3 } from 'three'
   import { useHasEventListeners } from '../../hooks/useHasEventListener'
   import { useRapier } from '../../hooks/useRapier'
-  import { applyTransforms } from '../../lib/applyTransforms'
   import { getWorldPosition, getWorldQuaternion, getWorldScale } from '../../lib/getWorldTransforms'
   import { parseRigidBodyType } from '../../lib/parseRigidBodyType'
   import type { RigidBodyContext, RigidBodyEventMap, ThrelteRigidBody } from '../../types/types'
@@ -37,7 +36,7 @@
   type $$Events = {
     [key in keyof RigidBodyEventMap]: CustomEvent<RigidBodyEventMap[key]>
   }
-  const dispatcher = createEventDispatcher<RigidBodyEventMap>()
+  const dispatcher = createRawEventDispatcher<RigidBodyEventMap>()
 
   const object = new Object3D()
 

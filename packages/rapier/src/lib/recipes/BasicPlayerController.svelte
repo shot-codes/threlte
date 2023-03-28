@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { RigidBody as RapierRigidBody } from '@dimforge/rapier3d-compat'
-  import { T, useFrame, useThrelte } from '@threlte/core'
-  import { createEventDispatcher } from 'svelte'
+  import { createRawEventDispatcher, T, useFrame, useThrelte } from '@threlte/core'
   import { Vector2, Vector3 } from 'three'
   import Collider from '../components/Colliders/Collider.svelte'
   import CollisionGroups from '../components/CollisionGroups/CollisionGroups.svelte'
@@ -33,7 +32,7 @@
   const t = new Vector3()
   const t2 = new Vector2()
 
-  const dispatch = createEventDispatcher<{
+  const dispatch = createRawEventDispatcher<{
     groundenter: void
     groundexit: void
   }>()

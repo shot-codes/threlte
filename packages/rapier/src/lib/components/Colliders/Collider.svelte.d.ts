@@ -5,6 +5,7 @@ import type {
 } from '@dimforge/rapier3d-compat'
 import { SvelteComponentTyped } from 'svelte'
 import type { Euler, Vector3 } from 'three'
+import type { ColliderEventMap } from '../../types/types'
 
 // ------------------ BASE ------------------
 
@@ -104,8 +105,4 @@ export type ColliderSlots = {
 export default class Collider<
   TShape extends Shape,
   TMassDef extends MassDef
-> extends SvelteComponentTyped<
-  ColliderProps<TShape, TMassDef>,
-  Record<string, unknown>,
-  ColliderSlots
-> {}
+> extends SvelteComponentTyped<ColliderProps<TShape, TMassDef>, ColliderEventMap, ColliderSlots> {}

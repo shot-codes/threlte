@@ -1,7 +1,7 @@
 import type { CoefficientCombineRule, Collider } from '@dimforge/rapier3d-compat'
 import { SvelteComponentTyped } from 'svelte'
 import type { Euler, Vector3 } from 'three'
-import type { AutoCollidersShapes } from '../../types/types'
+import type { AutoCollidersShapes, ColliderEventMap } from '../../types/types'
 
 // ------------------ BASE ------------------
 
@@ -75,6 +75,6 @@ type AutoCollidersSlots = {
 
 export default class AutoColliders<TMassDef extends MassDef> extends SvelteComponentTyped<
   AutoCollidersProps<TMassDef>,
-  Record<string, unknown>,
+  ColliderEventMap,
   AutoCollidersSlots
 > {}
