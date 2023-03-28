@@ -1,75 +1,101 @@
 <script lang="ts">
-  import { T, useLoader } from '@threlte/core'
-  import { Collider } from '@threlte/rapier'
-  import { TextureLoader } from 'three'
-  import Floor from './Floor.svelte'
+  import { T } from '@threlte/core'
+  import { Editable, Sheet } from '@threlte/theatre'
+  import { useLevel } from './Elements/elements'
+  import ElementSelector from './Elements/ElementSelector.svelte'
+  import RegisterSheetObject from './Elements/RegisterSheetObject.svelte'
 
-  const map = useLoader(TextureLoader).load(
-    '/assets/basic-vehicle-controller/prototype-textures/Purple/texture_05.png'
-  )
+  // Elements
+  import BasicBox from './Elements/BasicBox.svelte'
+  import Ramp from './Elements/Ramp.svelte'
+  import Checkpoint from './Elements/Checkpoint.svelte'
+  import { derived } from 'svelte/store'
+  import Finish from './Elements/Finish.svelte'
+  import { createEventDispatcher } from 'svelte'
+  import CheckpointRing from './Elements/CheckpointRing.svelte'
+
+  const { registerElement, registerExtension, objects } = useLevel('two')
+
+  const dispatch = createEventDispatcher<{
+    levelfinished: undefined
+  }>()
+
+  registerElement({
+    name: 'Box',
+    component: BasicBox,
+    buttonSvgSource: '📦'
+  })
+
+  registerElement({
+    name: 'Ramp',
+    component: Ramp,
+    buttonSvgSource: 'R'
+  })
+
+  registerElement({
+    name: 'Checkpoint',
+    component: Checkpoint,
+    buttonSvgSource:
+      '<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" fill="#fff" viewBox="0 0 256 256"><path d="M243.28,68.24l-24-23.56a16,16,0,0,0-22.58,0L104,136h0l-.11-.11L67.25,100.62a16,16,0,0,0-22.57.06l-24,24a16,16,0,0,0,0,22.61l71.62,72a16,16,0,0,0,22.63,0L243.33,90.91A16,16,0,0,0,243.28,68.24ZM103.62,208,32,136l24-24,.11.11,36.64,35.27a16,16,0,0,0,22.52,0L208.06,56,232,79.6Z"></path></svg>'
+  })
+
+  registerElement({
+    name: 'CheckpointRing',
+    component: CheckpointRing,
+    buttonSvgSource:
+      '<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" fill="#fff" viewBox="0 0 256 256"><path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34ZM232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88,88,0,1,0-88,88A88.1,88.1,0,0,0,216,128Z"></path></svg>'
+  })
+
+  registerElement({
+    name: 'Finish',
+    component: Finish,
+    buttonSvgSource: '🏁'
+  })
+
+  registerExtension()
+
+  const totalCheckpoints = derived(objects, (objects) => {
+    return objects.filter(([_, name]) => name.startsWith('Checkpoint')).length
+  })
+
+  const checkpointsReached: Set<string> = new Set()
+
+  const onCheckpointReached = (checkpointId: string) => {
+    checkpointsReached.add(checkpointId)
+  }
+
+  const onFinishReached = () => {
+    if (checkpointsReached.size === $totalCheckpoints) {
+      dispatch('levelfinished')
+    }
+  }
 </script>
 
-<Floor />
-
-<T.Group
-  position.x={-25}
-  position.y={-4}
-  rotation.z={(-15 * Math.PI) / 180}
->
-  <Collider
-    shape="cuboid"
-    args={[5, 5, 5]}
-  >
-    <T.Mesh
-      castShadow
-      receiveShadow
-    >
-      <T.BoxGeometry args={[10, 10, 10]} />
-      {#if $map}
-        <T.MeshStandardMaterial map={$map} />
-      {/if}
-    </T.Mesh>
-  </Collider>
-</T.Group>
-
-<T.Group
-  position.x={-30}
-  position.y={-2}
-  rotation.z={(-30 * Math.PI) / 180}
->
-  <Collider
-    shape="cuboid"
-    args={[5, 5, 5]}
-  >
-    <T.Mesh
-      castShadow
-      receiveShadow
-    >
-      <T.BoxGeometry args={[10, 10, 10]} />
-      {#if $map}
-        <T.MeshStandardMaterial map={$map} />
-      {/if}
-    </T.Mesh>
-  </Collider>
-</T.Group>
-
-<T.Group
-  position.x={-95}
-  position.y={15}
-  rotation.z={(-10 * Math.PI) / 180}
->
-  <Collider
-    shape="cuboid"
-    args={[5, 5, 5]}
-  >
-    <T.Mesh
-      castShadow
-      receiveShadow
-    >
-      <T.BoxGeometry args={[10, 10, 10]} />
-      {#if $map}
-        <T.MeshStandardMaterial map={$map} />
-      {/if}
-    </T.Mesh>
-  </Collider>
-</T.Group>
+<!-- <Floor /> -->
+<Sheet name="one">
+  {#each $objects as [component, name, ids]}
+    {#each ids as id}
+      <T.Group>
+        <Editable
+          controls
+          transform
+          name={`${name}-${id}`}
+          let:object
+        >
+          <RegisterSheetObject {object} />
+          <ElementSelector {object}>
+            <svelte:component
+              this={component}
+              name={`${name}-${id}`}
+              sheetObject={object}
+              on:checkpointreached={() => {
+                onCheckpointReached(id)
+              }}
+              on:finishreached={onFinishReached}
+            />
+          </ElementSelector>
+        </Editable>
+      </T.Group>
+    {/each}
+  {/each}
+</Sheet>

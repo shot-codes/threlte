@@ -1,15 +1,19 @@
+<!--
+
+-->
 <script lang="ts">
   import {
     Collider as RapierCollider,
     Ray,
     RigidBody as RapierRigidBody,
+    RigidBodyType,
     Rotation as RapierRotation,
     Rotation,
     Vector as RapierVector
   } from '@dimforge/rapier3d-compat'
   import { T, useFrame } from '@threlte/core'
   import { Text } from '@threlte/extras'
-  import { Collider, RigidBody, useRapier } from '@threlte/rapier'
+  import { Collider, computeBitMask, RigidBody, useRapier } from '@threlte/rapier'
   import { mapRange } from '@tweakpane/core'
   import { spring } from 'svelte/motion'
   import { Euler, Group, Quaternion, Vector3 } from 'three'
@@ -17,9 +21,10 @@
   import type { CarState } from './types'
   import { length, normalize } from './vectorUtils'
 
-  const { world } = useRapier()
+  const { world, paused } = useRapier()
 
   let rigidBody: RapierRigidBody
+
   let collider: RapierCollider
   let group: Group
 
@@ -32,7 +37,7 @@
     'RR' = 'RR'
   }
 
-  let debug = false
+  export let debug = false
 
   type WheelState = {
     type: Wheel
@@ -50,6 +55,16 @@
    * -------------------------------------------------------
    */
 
+  const spawnPosition: {
+    x: number
+    y: number
+    z: number
+  } = {
+    x: 0,
+    y: 3,
+    z: 0
+  }
+
   /**
    * In degrees
    */
@@ -61,9 +76,6 @@
    */
   const maxDesiredVelocity = 75
 
-  // spawn car from the air
-  const spawnHeight = 5
-
   // const suspensionMountHeightRelativeToCarFloor = 0
   const suspensionStiffness = 0.5
   const suspensionDamping = 0.03
@@ -72,6 +84,7 @@
   const carBodyHeight = 1.12
   const carBodyWidth = 1.9
   const carBodyLength = 4.5
+  const carBodyRadius = 0.3
 
   // 16 inch wheels have ~0.2m radius
   const wheelRadius = 0.306
@@ -85,6 +98,8 @@
   const suspensionImpulseMultiplier = 1600
   const forwardImpulseMultiplier = 800
   const forwardImpulseMap = (_t: number) => 1
+  const backwardImpulseMultiplier = 400
+  const backwardImpulseMap = (_t: number) => 1
   const brakeImpulseMultiplier = 1400
   const brakeImpulseMap = (_t: number) => 1
   const steeringTorqueMultiplier = 250
@@ -94,11 +109,67 @@
    * Steering torque is only applied if the velocity is above this threshold.
    */
   const steeringVelocityThreshold = 0.3
+
+  // https://ease-everything.vercel.app/?path=%255B%2522Path%2522%252C%257B%2522applyMatrix%2522%253Atrue%252C%2522segments%2522%253A%255B%255B0%252C0%255D%252C%255B%255B50%252C400%255D%252C%255B-25%252C0%255D%252C%255B75%252C0%255D%255D%252C%255B200%252C300%255D%252C%255B400%252C100%255D%255D%252C%2522strokeColor%2522%253A%255B0.05882%252C0.38039%252C0.99608%255D%252C%2522strokeWidth%2522%253A2%257D%255D
   const steeringMap = (t: number) => {
-    if (t < 0.0625) return ((0.4375 - 0) / (0.0625 - 0)) * (t - 0) + 0
-    if (t < 0.25) return ((1 - 0.4375) / (0.25 - 0.0625)) * (t - 0.0625) + 0.4375
-    return ((0.25 - 1) / (1 - 0.25)) * (t - 0.25) + 1
+    const kSTS = 11
+    const kSSS = 1 / (kSTS - 1)
+    const map = (n: number, t: number, S: number, r: number, u: number) =>
+      ((n - t) * (u - r)) / (S - t) + r
+    const A = (n: number, t: number) => 1 - 3 * t + 3 * n
+    const B = (n: number, t: number) => 3 * t - 6 * n
+    const C = (n: number) => 3 * n
+    const cB = (n: number, t: number, S: number) => ((A(t, S) * n + B(t, S)) * n + C(t)) * n
+    const gS = (n: number, t: number, S: number) => 3 * A(t, S) * n * n + 2 * B(t, S) * n + C(t)
+    const bS = (n: number, t: number, S: number, r: number, u: number) => {
+      let c,
+        o,
+        e = 0
+      do {
+        ;(c = cB((o = t + (S - t) / 2), r, u) - n) > 0 ? (S = o) : (t = o)
+      } while (Math.abs(c) > 1e-7 && ++e < 10)
+      return o
+    }
+    const nRI = (n: number, t: number, S: number, r: number) => {
+      for (let u = 0; u < 4; ++u) {
+        const u = gS(t, S, r)
+        if (0 === u) return t
+        t -= (cB(t, S, r) - n) / u
+      }
+      return t
+    }
+    const b = (n: number, t: number, S: number, r: number) => {
+      if (!(0 <= n && n <= 1 && 0 <= S && S <= 1)) throw new Error('Error resolving bezier')
+      const u = new Float32Array(kSTS)
+      if (n !== t || S !== r) for (let t = 0; t < kSTS; ++t) u[t] = cB(t * kSSS, n, S)
+      return (c: number) =>
+        n === t && S === r
+          ? c
+          : 0 === c || 1 === c
+          ? c
+          : cB(
+              (function (t) {
+                let r = 0,
+                  c = 1
+                const o = kSTS - 1
+                for (; c !== o && u[c] <= t; ++c) r += kSSS
+                const e = r + ((t - u[--c]) / (u[c + 1] - u[c])) * kSSS,
+                  f = gS(e, n, S)
+                return f >= 0.001 ? nRI(t, e, n, S) : 0 === f ? e : bS(t, r, r + kSSS, n, S)
+              })(c),
+              t,
+              r
+            )
+    }
+
+    if (t < 0.125)
+      return map(b(0, 0, 0.5, 1)(((t - 0) * (1 - 0)) / (0.125 - 0) + 0 * 2), 0, 1, 0, 1)
+    if (t < 0.5)
+      return map(b(0.5, 0, 1, 1)(((t - 0.125) * (1 - 0)) / (0.5 - 0.125) + 0 * 2), 0, 1, 1, 0.75)
+    return ((0.25 - 0.75) / (1 - 0.5)) * (t - 0.5) + 0.75
   }
+
+  // https://ease-everything.vercel.app/?path=%255B%2522Path%2522%252C%257B%2522applyMatrix%2522%253Atrue%252C%2522segments%2522%253A%255B%255B0%252C350%255D%252C%255B150%252C400%255D%252C%255B400%252C125%255D%255D%252C%2522strokeColor%2522%253A%255B0.05882%252C0.38039%252C0.99608%255D%252C%2522strokeWidth%2522%253A2%257D%255D
   const visualSteeringMap = (t: number) => {
     if (t < 0.3125) return ((1 - 0.875) / (0.3125 - 0)) * (t - 0) + 0.875
     return ((0.3125 - 1) / (1 - 0.3125)) * (t - 0.3125) + 1
@@ -119,6 +190,29 @@
    * CAR CONFIGURATION END
    * -------------------------------------------------------
    */
+
+  const spawn = () => {
+    if (!rigidBody) return
+    if (rigidBody.bodyType() !== RigidBodyType.Dynamic) {
+      rigidBody.setBodyType(RigidBodyType.Dynamic, true)
+    }
+    rigidBody.setTranslation(
+      {
+        x: spawnPosition.x,
+        y: carBodyHeight / 2 + maxGroundClearance + spawnPosition.y,
+        z: spawnPosition.z
+      },
+      true
+    )
+    rigidBody.setAngvel({ x: 0, y: 0, z: 0 }, true)
+    rigidBody.setLinvel({ x: 0, y: 0, z: 0 }, true)
+    rigidBody.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true)
+  }
+
+  // as soon as the rigidBody is available, we set its position and type to dynamic
+  $: if (rigidBody) spawn()
+
+  const respawn = () => spawn()
 
   // the total length of the suspension travel
 
@@ -315,8 +409,13 @@
     }
   }
 
+  const collideWithGroup = computeBitMask([0], [], [])
+
   useFrame((_, delta) => {
-    if (!rigidBody || !collider) return
+    if (!rigidBody || !collider || $paused) return
+
+    // we're mostly working with 60fps, so correctedDelta is ~1
+    const correctedDelta = delta * 60
 
     // get and set the basics
     const currentWorldPosition = rigidBody.translation()
@@ -343,7 +442,7 @@
     // update the inner group position and rotation
     if (group) {
       group.position.x = currentWorldPosition.x
-      group.position.y = currentWorldPosition.y - spawnHeight
+      group.position.y = currentWorldPosition.y
       group.position.z = currentWorldPosition.z
       setFromRapierRotation(currentWorldRotation, tempQuaternionA)
       group.rotation.y = trueAxisAngle('y', tempQuaternionA)
@@ -361,18 +460,19 @@
         getWorldRayOriginForWheel(wheelState.type, currentWorldPosition, currentWorldRotation),
         worldRayDirection
       )
+
       wheelState.ray = ray
       const hit = world.castRayAndGetNormal(
         ray,
         maxGroundClearance,
         true,
         undefined,
-        undefined,
+        collideWithGroup,
         collider,
         rigidBody
       )
 
-      if (hit) {
+      if (hit && !hit.collider.isSensor()) {
         // wheel is touching the ground
         wheelState.onGround = true
 
@@ -451,24 +551,30 @@
         }, new Vector3(0, 0, 0))
         .divideScalar(groundedWheels.length)
 
-      ;(window as any).asfi = averageImpactSurfaceNormal.toArray()
-
       let mode: 'accelerate' | 'brake' = 'accelerate'
       if (isForward && yAxis < 0) mode = 'accelerate'
       else if (isForward && yAxis > 0) mode = 'brake'
       else if (!isForward && yAxis > 0) mode = 'accelerate'
       else if (!isForward && yAxis < 0) mode = 'brake'
 
-      const multiplier = mode === 'accelerate' ? forwardImpulseMultiplier : brakeImpulseMultiplier
-      const map = mode === 'accelerate' ? forwardImpulseMap : brakeImpulseMap
+      const multiplier =
+        mode === 'accelerate'
+          ? isForward
+            ? forwardImpulseMultiplier
+            : backwardImpulseMultiplier
+          : brakeImpulseMultiplier
+      const map =
+        mode === 'accelerate'
+          ? isForward
+            ? forwardImpulseMap
+            : backwardImpulseMap
+          : brakeImpulseMap
 
       carState.isBraking = mode === 'brake'
-      ;(window as any).mode = mode
-      ;(window as any).yAxis = yAxis
 
       const forwardImpulse = threeVectorToRapierVector(
         tempVectorA
-          .set(yAxis * multiplier * map(velocityNormalized), 0, 0)
+          .set(yAxis * multiplier * map(velocityNormalized) * correctedDelta, 0, 0)
           .applyQuaternion(
             tempQuaternionA.set(
               currentWorldRotation.x,
@@ -502,8 +608,14 @@
         // the side torque is a function of the velocity multiplied by the
         // steering input and a multiplier
         const steeringTorque =
-          (isForward ? xAxis : -xAxis) * steeringTorqueMultiplier * steeringMap(velocityNormalized)
-        const steeringTorqueImpulse = { x: 0, y: steeringTorque, z: 0 }
+          (isForward ? xAxis : -xAxis) *
+          steeringTorqueMultiplier *
+          correctedDelta *
+          steeringMap(velocityNormalized)
+        const steeringTorqueImpulse = averageImpactSurfaceNormal
+          .clone()
+          .normalize()
+          .multiplyScalar(steeringTorque)
         rigidBody.applyTorqueImpulse(steeringTorqueImpulse, true)
         carState.steeringTorque.direction = normalize(steeringTorqueImpulse)
         carState.steeringTorque.origin = currentWorldPosition
@@ -537,8 +649,7 @@
       const sideImpulseVector = tempVectorB
         .set(0, 0, 1)
         .applyQuaternion(tempQuaternionA)
-        .multiplyScalar(currentVelocityDot)
-        .multiplyScalar(sideImpulseMultiplier)
+        .multiplyScalar(currentVelocityDot * correctedDelta * sideImpulseMultiplier)
 
       const sideImpulse = {
         x: sideImpulseVector.x,
@@ -597,67 +708,58 @@
 </script>
 
 <svelte:window
-  on:keypress={({ key }) => {
-    if (key === 'r') {
-      const currentTranslation = rigidBody.translation()
-      if (!rigidBody) return
-      rigidBody.setTranslation(
-        {
-          x: currentTranslation.x,
-          y: carBodyHeight / 2 + maxGroundClearance + spawnHeight,
-          z: currentTranslation.z
-        },
-        true
-      )
-      rigidBody.setAngvel({ x: 0, y: 0, z: 0 }, true)
-      rigidBody.setLinvel({ x: 0, y: 0, z: 0 }, true)
-
-      const currentRotation = rigidBody.rotation()
-      setFromRapierRotation(currentRotation, tempQuaternionA)
-      const axisYAngle = trueAxisAngle('y', tempQuaternionA)
-      tempQuaternionA.identity().setFromAxisAngle(new Vector3(0, 1, 0), axisYAngle)
-      rigidBody.setRotation(
-        { x: tempQuaternionA.x, y: tempQuaternionA.y, z: tempQuaternionA.z, w: tempQuaternionA.w },
-        true
-      )
-    }
-    if (key === 'o') {
-      debug = !debug
+  on:keypress={(e) => {
+    const { key } = e
+    if (key === 'Enter' && !$paused) {
+      respawn()
     }
   }}
-  on:keydown={({ key }) => {
-    if (key === 'w') {
+  on:keydown={(e) => {
+    const { key } = e
+    if (key === 'ArrowUp') {
+      e.preventDefault()
       yAxis = -1
-    } else if (key === 's') {
+    } else if (key === 'ArrowDown') {
+      e.preventDefault()
       yAxis = 1
-    } else if (key === 'a') {
+    } else if (key === 'ArrowLeft') {
+      e.preventDefault()
       xAxis = 1
-    } else if (key === 'd') {
+    } else if (key === 'ArrowRight') {
+      e.preventDefault()
       xAxis = -1
     }
   }}
-  on:keyup={({ key }) => {
-    if (key === 'w' || key === 's') {
+  on:keyup={(e) => {
+    const { key } = e
+    if (key === 'ArrowUp' || key === 'ArrowDown') {
+      e.preventDefault()
       yAxis = 0
-    } else if (key === 'a' || key === 'd') {
+    } else if (key === 'ArrowLeft' || key === 'ArrowRight') {
+      e.preventDefault()
       xAxis = 0
     }
   }}
 />
 
-<T.Group position.y={carBodyHeight / 2 + maxGroundClearance + spawnHeight}>
+<T.Group>
   <RigidBody
     canSleep={false}
-    type="dynamic"
+    type="fixed"
     bind:rigidBody
   >
     <Collider
-      restitution={0.8}
-      friction={0.2}
+      restitution={0}
+      friction={0.4}
       mass={carWeight}
       bind:collider
-      shape="cuboid"
-      args={[carBodyLength / 2, carBodyHeight / 2, carBodyWidth / 2]}
+      shape="roundCuboid"
+      args={[
+        carBodyLength / 2 - carBodyRadius,
+        carBodyHeight / 2 - carBodyRadius,
+        carBodyWidth / 2 - carBodyRadius,
+        carBodyRadius
+      ]}
     >
       {#if !debug}
         <slot
@@ -725,17 +827,15 @@
     </Collider>
   </RigidBody>
 
-  {#if !debug}
-    <T.Group
-      bind:ref={group}
-      let:ref
-    >
-      <slot
-        name="camera"
-        {ref}
-      />
-    </T.Group>
-  {/if}
+  <T.Group
+    bind:ref={group}
+    let:ref
+  >
+    <slot
+      name="camera"
+      {ref}
+    />
+  </T.Group>
 </T.Group>
 
 {#if debug && Object.values(wheelStates).some((wheelState) => wheelState.onGround)}
