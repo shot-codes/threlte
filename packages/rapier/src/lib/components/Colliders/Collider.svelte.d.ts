@@ -9,7 +9,10 @@ import type { ColliderEventMap } from '../../types/types'
 
 // ------------------ BASE ------------------
 
+type Type = 'static' | 'dynamic'
+
 type BaseProps = {
+  type?: Type
   restitution?: number
   restitutionCombineRule?: CoefficientCombineRule
   friction?: number
@@ -17,6 +20,7 @@ type BaseProps = {
   sensor?: boolean
   collider?: RapierCollider
   contactForceEventThreshold?: number
+  refresh?: () => void
 }
 
 // ------------------ SHAPE ------------------

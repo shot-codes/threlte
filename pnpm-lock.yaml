@@ -137,13 +137,14 @@ importers:
       '@macfja/svelte-persistent-store': ^2.2.1
       '@stackblitz/sdk': ^1.8.2
       '@tailwindcss/typography': ^0.5.3
-      '@theatre/core': 0.5.1-rc.1
-      '@theatre/studio': 0.5.1-rc.1
+      '@theatre/core': 0.6.0
+      '@theatre/studio': 0.6.0
       '@threlte/core': workspace:*
       '@threlte/extras': workspace:*
       '@threlte/rapier': workspace:*
       '@threlte/theatre': workspace:*
       '@tweakpane/core': ^1.1.0
+      '@types/stats.js': ^0.17.0
       '@types/three': ^0.144.0
       astro: ^2.1.2
       astro-auto-import: ^0.2.1
@@ -152,6 +153,7 @@ importers:
       rehype-pretty-code: ^0.9.2
       shiki: ^0.10.1
       simplex-noise: ^4.0.0
+      stats.js: ^0.17.0
       svelte: ^3.54.0
       svelte-preprocess: ^5.0.1
       tailwindcss: ^3.2.7
@@ -170,13 +172,14 @@ importers:
       '@macfja/svelte-persistent-store': 2.2.1_svelte@3.55.1
       '@stackblitz/sdk': 1.8.2
       '@tailwindcss/typography': 0.5.3_tailwindcss@3.2.7
-      '@theatre/core': 0.5.1-rc.1
-      '@theatre/studio': 0.5.1-rc.1_@theatre+core@0.5.1-rc.1
+      '@theatre/core': 0.6.0
+      '@theatre/studio': 0.6.0_@theatre+core@0.6.0
       '@threlte/core': link:../../packages/core
       '@threlte/extras': link:../../packages/extras
       '@threlte/rapier': link:../../packages/rapier
       '@threlte/theatre': link:../../packages/theatre
       '@tweakpane/core': 1.1.0
+      '@types/stats.js': 0.17.0
       '@types/three': 0.144.0
       astro-auto-import: 0.2.1_astro@2.1.2
       node-html-parser: 6.1.4
@@ -184,6 +187,7 @@ importers:
       rehype-pretty-code: 0.9.3_shiki@0.10.1
       shiki: 0.10.1
       simplex-noise: 4.0.0
+      stats.js: 0.17.0
       svelte-preprocess: 5.0.1_wluf2ob37pj6ulfkqvmfgq24j4
       three: 0.145.0
       tweakpane: 3.1.0
@@ -401,8 +405,8 @@ importers:
       '@sveltejs/adapter-auto': 1.0.0-next.61
       '@sveltejs/adapter-static': 1.0.0-next.35
       '@sveltejs/kit': 1.0.0-next.377
-      '@theatre/core': 0.5.1-rc.1
-      '@theatre/studio': 0.5.1-rc.1
+      '@theatre/core': 0.6.0
+      '@theatre/studio': 0.6.0
       '@threlte/core': workspace:*
       '@threlte/extras': workspace:*
       '@types/node': ^18.0.3
@@ -429,8 +433,8 @@ importers:
       '@sveltejs/adapter-auto': 1.0.0-next.61
       '@sveltejs/adapter-static': 1.0.0-next.35
       '@sveltejs/kit': 1.0.0-next.377_svelte@3.53.0+vite@3.2.3
-      '@theatre/core': 0.5.1-rc.1
-      '@theatre/studio': 0.5.1-rc.1_@theatre+core@0.5.1-rc.1
+      '@theatre/core': 0.6.0
+      '@theatre/studio': 0.6.0_@theatre+core@0.6.0
       '@threlte/core': link:../core
       '@threlte/extras': link:../extras
       '@types/node': 18.0.3
@@ -2015,8 +2019,20 @@ packages:
       '@theatre/dataverse': 0.5.1-rc.1
     dev: true
 
+  /@theatre/core/0.6.0:
+    resolution: {integrity: sha512-HyOoEQapeVbgKBBVfv1rjklN8oAY1/6RZuzntdL9Nfqb5UVzyVR0Im9q4WBPHx6d1dB1BKpAwIw6PzqlKoyehA==}
+    dependencies:
+      '@theatre/dataverse': 0.6.0
+    dev: true
+
   /@theatre/dataverse/0.5.1-rc.1:
     resolution: {integrity: sha512-0jQEYa6M6WtziPa+Kn/oJTQXGiz4x4hb6Wg7zgREFgler6F9+OfGdJbTT2uovb8UTMh4MrzcEIGvZyMYk73DLw==}
+    dependencies:
+      lodash-es: 4.17.21
+    dev: true
+
+  /@theatre/dataverse/0.6.0:
+    resolution: {integrity: sha512-1W7b8bQTZeRmmrY64HTQzEtjLJWBmdOkfK/liR+LSSjgAylY3CjZ4/vaDUMmRQr4zCeQjyNVmrvwaIZ/33s+tQ==}
     dependencies:
       lodash-es: 4.17.21
     dev: true
@@ -2028,6 +2044,15 @@ packages:
     dependencies:
       '@theatre/core': 0.5.1-rc.1
       '@theatre/dataverse': 0.5.1-rc.1
+    dev: true
+
+  /@theatre/studio/0.6.0_@theatre+core@0.6.0:
+    resolution: {integrity: sha512-DH53wWSkIDevbYJUybLH5nIx+rFgiWlykYOmDKC9WK9QUQFYRpnaBu4UNIo+RmGZ+I2ZMSHx1RfrfnBJCr1j6A==}
+    peerDependencies:
+      '@theatre/core': '*'
+    dependencies:
+      '@theatre/core': 0.6.0
+      '@theatre/dataverse': 0.6.0
     dev: true
 
   /@tootallnate/once/2.0.0:
@@ -2221,6 +2246,10 @@ packages:
 
   /@types/semver/6.2.3:
     resolution: {integrity: sha512-KQf+QAMWKMrtBMsB8/24w53tEsxllMj6TuA80TT/5igJalLI/zm0L3oXRbIAl4Ohfc85gyHX/jhMwsVkmhLU4A==}
+    dev: true
+
+  /@types/stats.js/0.17.0:
+    resolution: {integrity: sha512-9w+a7bR8PeB0dCT/HBULU2fMqf6BAzvKbxFboYhmDtDkKPiyXYbjoe2auwsXlEFI7CFNMF1dCv3dFH5Poy9R1w==}
     dev: true
 
   /@types/three/0.144.0:
@@ -8834,6 +8863,10 @@ packages:
       safer-buffer: 2.1.2
       tweetnacl: 0.14.5
     dev: false
+
+  /stats.js/0.17.0:
+    resolution: {integrity: sha512-hNKz8phvYLPEcRkeG1rsGmV5ChMjKDAWU7/OJJdDErPBNChQXxCo3WZurGpnWc6gZhAzEPFad1aVgyOANH1sMw==}
+    dev: true
 
   /stream-transform/2.1.3:
     resolution: {integrity: sha512-9GHUiM5hMiCi6Y03jD2ARC1ettBXkQBoQAe7nJsPknnI0ow10aXjTnew8QtYQmLjzn974BnmWEAJgCY6ZP1DeQ==}

@@ -25,6 +25,7 @@
 
   export let shape: $$Props['shape']
   export let args: $$Props['args']
+  export let type: $$Props['type'] = undefined as $$Props['type']
   export let restitution: $$Props['restitution'] = undefined as $$Props['restitution']
   export let restitutionCombineRule: $$Props['restitutionCombineRule'] =
     undefined as $$Props['restitutionCombineRule']
@@ -145,20 +146,29 @@
     }
   }
 
+  export const refresh = () => {
+    if (!collider) return
+    collider.setTranslation(getWorldPosition(object))
+    collider.setRotation(getWorldQuaternion(object))
+  }
+
   /**
    * If the Collider isAttached (i.e. NOT child of a RigidBody), update the
    * transforms on every frame.
    */
-  useFrame(
+  const { start, stop } = useFrame(
     () => {
-      if (!collider) return
-      collider.setTranslation(getWorldPosition(object))
-      collider.setRotation(getWorldQuaternion(object))
+      refresh()
     },
     {
-      autostart: !hasRigidBodyParent
+      autostart: !hasRigidBodyParent && type === 'dynamic'
     }
   )
+
+  $: {
+    if (!hasRigidBodyParent && type === 'dynamic') start()
+    else stop()
+  }
 
   /**
    * Cleanup

@@ -33,19 +33,14 @@ const getEventDispatchers = (ctx: RapierContext, collider1: Collider, collider2:
 export const useFrameHandler = (ctx: RapierContext, order?: number) => {
   const eventQueue = new EventQueue(false)
 
-  let time = performance.now()
-
   const { start, started, stop } = useFrame(
-    () => {
+    (_, delta) => {
       // if (!eventQueue) return
       const { world } = ctx
 
       // Set timestep to current delta, to allow for variable frame rates
       // We cap the delta at 100, so that the physics simulation doesn't get wild
-      const now = performance.now()
-      const delta = Math.min(100, now - time)
-
-      world.timestep = delta / 1000
+      world.timestep = Math.min(0.1, delta)
       world.step(eventQueue)
 
       // Update meshes
@@ -278,8 +273,6 @@ export const useFrameHandler = (ctx: RapierContext, order?: number) => {
           })
         }
       })
-
-      time = now
     },
     { order }
   )
