@@ -28,6 +28,7 @@ export type Slots<T extends UnknownShorthandCompoundProps> = {
 
 export type Events<T extends UnknownShorthandCompoundProps> = {
   change: ISheetObject<T>['value']
+  create: ISheetObject<T>['value']
 }
 
 export type PropTransform = 'none' | 'euler'

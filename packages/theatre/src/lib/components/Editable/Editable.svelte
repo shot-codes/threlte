@@ -1,12 +1,11 @@
 <script lang="ts">
   import type { ISheet, UnknownShorthandCompoundProps } from '@theatre/core'
   import type { IScrub } from '@theatre/studio'
-  import { useParent, useThrelte } from '@threlte/core'
+  import { createRawEventDispatcher, useParent, useThrelte } from '@threlte/core'
   import { TransformControls } from '@threlte/extras'
-  import { getContext, onDestroy } from 'svelte'
+  import { getContext, onDestroy, onMount } from 'svelte'
   import { DEG2RAD, RAD2DEG } from 'three/src/math/MathUtils'
   import { globalObjects, globalStudio } from '../consts'
-  import { createRawEventDispatcher } from './createRawEventDispatcher'
   import { isObject3D, isOrthographicOrPerspectiveCamera, isPrimitive } from './typeGuards'
   import type { AutoProp, BooleanProp, Props, PropTransform, StringProp } from './types'
   import { getAutoPropValue, parseAutoPropKeyByPath, resolve } from './utils'
@@ -135,6 +134,11 @@
     })
     .reduce((acc, curr) => ({ ...acc, ...curr }), {})
 
+  const dispatch = createRawEventDispatcher<{
+    change: typeof values
+    create: typeof values
+  }>()
+
   const sheet = getContext('theatre-sheet') as ISheet
 
   const projectId = sheet.address.projectId
@@ -152,9 +156,9 @@
 
   let values = object.value
 
-  const dispatchRaw = createRawEventDispatcher<{
-    change: typeof values
-  }>()
+  onMount(() => {
+    dispatch('create', object.value)
+  })
 
   let selected = false
   let isMouseDown = false
@@ -180,7 +184,7 @@
     values = newValues
 
     // dispatch events to parent component callbacks
-    dispatchRaw('change', newValues)
+    dispatch('change', newValues)
 
     // update auto props
     Object.entries(newValues).forEach((prop) => {
@@ -210,6 +214,7 @@
       ) {
         $parent.updateProjectionMatrix()
       }
+
       invalidate()
     })
   })
