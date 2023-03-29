@@ -194,6 +194,7 @@ export const useLevel = (levelId: string) => {
           [elementName]: newEntitiesValue
         })
       })
+      studio.current.setSelection([])
     }
   }
 

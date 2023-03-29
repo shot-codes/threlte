@@ -73,8 +73,8 @@
 
 <!-- <Floor /> -->
 <Sheet name="one">
-  {#each $objects as [component, name, ids]}
-    {#each ids as id}
+  {#each $objects as [component, name, ids], index (name)}
+    {#each ids as id, index (`${name}-${id}`)}
       <T.Group>
         <Editable
           controls

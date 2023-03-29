@@ -26,6 +26,8 @@
   const stats = new Stats()
   stats.showPanel(1) // 0: fps, 1: ms, 2: mb, 3+: custom
   document.body.appendChild(stats.dom)
+  stats.dom.style.top = 'unset'
+  stats.dom.style.bottom = '0'
 
   useFrame(
     () => {

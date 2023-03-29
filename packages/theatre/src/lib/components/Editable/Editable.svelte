@@ -147,12 +147,22 @@
 
   export const object =
     globalObjects.get(`${projectId}-${sheetId}-${instanceId}-${name}`) ??
-    sheet.object(name, {
-      ...parsedProps,
-      ...props,
-      ...transformProps
-    })
+    sheet.object(
+      name,
+      {
+        ...parsedProps,
+        ...props,
+        ...transformProps
+      },
+      {
+        reconfigure: true
+      }
+    )
   globalObjects.set(`${projectId}-${sheetId}-${instanceId}-${name}`, object)
+
+  onDestroy(() => {
+    sheet.detachObject(name)
+  })
 
   let values = object.value
 
@@ -294,7 +304,7 @@
     rotate: (snap?.rotate ?? 45) * DEG2RAD,
     scale: snap?.scale ?? 0.1
   } as Record<Mode, number | null>
-	let space: 'local' | 'world' = 'local'
+  let space: 'local' | 'world' = 'local'
 
   const onKeyPress = (e: KeyboardEvent) => {
     if (e.key === 't') {
@@ -306,13 +316,13 @@
     if (e.key === 's') {
       mode = 'scale'
     }
-		if (e.key === 'g') {
-			if (space === 'local') {
-				space = 'world'
-			} else {
-				space = 'local'
-			}
-		}
+    if (e.key === 'g') {
+      if (space === 'local') {
+        space = 'world'
+      } else {
+        space = 'local'
+      }
+    }
   }
 
   const onKeyDown = (e: KeyboardEvent) => {
