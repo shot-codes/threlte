@@ -25,7 +25,11 @@ const createEntityId = () => {
 
 const addEntity = (entitiesString: string, id: string) => {
   const currentEntities = parseString(entitiesString)
-  return [...new Set([...currentEntities, id])].join(delimiter)
+  // filter duplicates
+  return [...currentEntities, id]
+    .filter((id) => id !== '')
+    .filter((id, index, array) => array.indexOf(id) === index)
+    .join(delimiter)
 }
 
 const removeEntity = (entitiesString: string, entityId: string) => {
