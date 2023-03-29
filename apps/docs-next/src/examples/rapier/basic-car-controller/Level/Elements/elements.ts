@@ -110,7 +110,7 @@ export const useLevel = (levelId: string) => {
               svgSource: element.buttonSvgSource,
               onClick: () => {
                 if (!sheetObject.current) return
-                const entitiesValueBefore = entities.current[element.name]!
+                const entitiesValueBefore = entities.current[element.name] ?? ''
                 const newId = createEntityId()
                 studio.transaction(({ set }) => {
                   if (!sheetObject.current) return
