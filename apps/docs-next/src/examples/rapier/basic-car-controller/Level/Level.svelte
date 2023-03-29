@@ -14,43 +14,45 @@
   import { createEventDispatcher } from 'svelte'
   import CheckpointRing from './Elements/CheckpointRing.svelte'
 
-  const { registerElement, registerExtension, objects } = useLevel('two')
+  const { registerElements, registerExtension, objects } = useLevel('one')
 
   const dispatch = createEventDispatcher<{
     levelfinished: undefined
   }>()
 
-  registerElement({
-    name: 'Box',
-    component: BasicBox,
-    buttonSvgSource: '📦'
-  })
+  registerElements([
+    {
+      name: 'Box',
+      component: BasicBox,
+      buttonSvgSource: '📦'
+    },
 
-  registerElement({
-    name: 'Ramp',
-    component: Ramp,
-    buttonSvgSource: 'R'
-  })
+    {
+      name: 'Ramp',
+      component: Ramp,
+      buttonSvgSource: 'R'
+    },
 
-  registerElement({
-    name: 'Checkpoint',
-    component: Checkpoint,
-    buttonSvgSource:
-      '<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" fill="#fff" viewBox="0 0 256 256"><path d="M243.28,68.24l-24-23.56a16,16,0,0,0-22.58,0L104,136h0l-.11-.11L67.25,100.62a16,16,0,0,0-22.57.06l-24,24a16,16,0,0,0,0,22.61l71.62,72a16,16,0,0,0,22.63,0L243.33,90.91A16,16,0,0,0,243.28,68.24ZM103.62,208,32,136l24-24,.11.11,36.64,35.27a16,16,0,0,0,22.52,0L208.06,56,232,79.6Z"></path></svg>'
-  })
+    {
+      name: 'Checkpoint',
+      component: Checkpoint,
+      buttonSvgSource:
+        '<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" fill="#fff" viewBox="0 0 256 256"><path d="M243.28,68.24l-24-23.56a16,16,0,0,0-22.58,0L104,136h0l-.11-.11L67.25,100.62a16,16,0,0,0-22.57.06l-24,24a16,16,0,0,0,0,22.61l71.62,72a16,16,0,0,0,22.63,0L243.33,90.91A16,16,0,0,0,243.28,68.24ZM103.62,208,32,136l24-24,.11.11,36.64,35.27a16,16,0,0,0,22.52,0L208.06,56,232,79.6Z"></path></svg>'
+    },
 
-  registerElement({
-    name: 'CheckpointRing',
-    component: CheckpointRing,
-    buttonSvgSource:
-      '<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" fill="#fff" viewBox="0 0 256 256"><path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34ZM232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88,88,0,1,0-88,88A88.1,88.1,0,0,0,216,128Z"></path></svg>'
-  })
+    {
+      name: 'CheckpointRing',
+      component: CheckpointRing,
+      buttonSvgSource:
+        '<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" fill="#fff" viewBox="0 0 256 256"><path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34ZM232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88,88,0,1,0-88,88A88.1,88.1,0,0,0,216,128Z"></path></svg>'
+    },
 
-  registerElement({
-    name: 'Finish',
-    component: Finish,
-    buttonSvgSource: '🏁'
-  })
+    {
+      name: 'Finish',
+      component: Finish,
+      buttonSvgSource: '🏁'
+    }
+  ])
 
   registerExtension()
 

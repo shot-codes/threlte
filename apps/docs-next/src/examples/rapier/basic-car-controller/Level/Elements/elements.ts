@@ -11,7 +11,7 @@ type ElementConfiguration = {
   buttonSvgSource: string
 }
 
-type ElementConfigurations = Record<string, ElementConfiguration>
+type ElementConfigurations = ElementConfiguration[]
 
 const delimiter = ','
 const parseString = (str: string) => {
@@ -52,14 +52,16 @@ export const useLevel = (levelId: string) => {
 
   const entities = currentWritable<Record<string, string>>({})
 
-  const elementConfigurations = currentWritable<ElementConfigurations>({})
+  const elementConfigurations = currentWritable<ElementConfigurations>([])
 
   const sheetObject = currentWritable<ISheetObject | undefined>(undefined)
 
   const objects = derived(entities, (entities) => {
     // turn Record<string, string(delimited)> into string[][]
     return Object.entries(entities).map(([key, value]) => {
-      const component = elementConfigurations.current[key]?.component
+      const component = elementConfigurations.current.find(
+        (element) => element.name === key
+      )?.component
       return [component, key, parseString(value)] as [any, string, string[]]
     })
   })
@@ -67,6 +69,8 @@ export const useLevel = (levelId: string) => {
   let unsubscriber: (() => void) | undefined = undefined
 
   const createObject = () => {
+    console.log('creating object')
+
     if (unsubscriber) unsubscriber()
 
     sheetObject.set(
@@ -92,14 +96,13 @@ export const useLevel = (levelId: string) => {
     unsubscriber?.()
   })
 
-  const registerElement = (element: ElementConfiguration) => {
-    elementConfigurations.update((elements) => {
-      elements[element.name] = element
-      return elements
-    })
-    entities.update((entities) => {
-      entities[element.name] = ''
-      return entities
+  const registerElements = (ecs: ElementConfigurations) => {
+    elementConfigurations.set(ecs)
+    ecs.forEach((element) => {
+      entities.update((entities) => {
+        entities[element.name] = ''
+        return entities
+      })
     })
     createObject()
   }
@@ -154,8 +157,6 @@ export const useLevel = (levelId: string) => {
               // there has to be something selected
               if (!entitiesValueBefore) return
 
-              console.log(sheetObject.current?.props)
-
               const newId = createEntityId()
               studio.transaction(({ set }) => {
                 if (!sheetObject.current) return
@@ -175,8 +176,6 @@ export const useLevel = (levelId: string) => {
                 studio.setSelection([object])
                 unsubscribe()
               })
-
-              console.log(levelSheetObjects.current[`${elementName}-${newId}`])
             }
           }
 
@@ -224,7 +223,7 @@ export const useLevel = (levelId: string) => {
   return {
     sheetObject,
     objects,
-    registerElement,
+    registerElements,
     registerExtension
   }
 }
