@@ -109,14 +109,21 @@ export const useLevel = (levelId: string) => {
               title: 'Add ' + element.name,
               svgSource: element.buttonSvgSource,
               onClick: () => {
+                console.log('adding element')
                 if (!sheetObject.current) return
                 const entitiesValueBefore = entities.current[element.name] ?? ''
+                console.log('entitiesValueBefore', entitiesValueBefore)
+                console.log('element.name', element.name)
                 const newId = createEntityId()
+                console.log('newId', newId)
+                const updatedEntities = addEntity(entitiesValueBefore, newId)
+                console.log('updatedEntities', updatedEntities)
                 studio.transaction(({ set }) => {
+                  console.log('sheetObject.current', sheetObject.current)
                   if (!sheetObject.current) return
                   set(sheetObject.current.props, {
                     ...sheetObject.current.value,
-                    [element.name]: addEntity(entitiesValueBefore, newId)
+                    [element.name]: updatedEntities
                   })
                 })
               }
