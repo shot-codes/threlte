@@ -69,8 +69,6 @@ export const useLevel = (levelId: string) => {
   let unsubscriber: (() => void) | undefined = undefined
 
   const createObject = () => {
-    console.log('creating object')
-
     if (unsubscriber) unsubscriber()
 
     sheetObject.set(
@@ -86,8 +84,6 @@ export const useLevel = (levelId: string) => {
     )
 
     unsubscriber = sheetObject.current?.onValuesChange((values) => {
-      console.log('NEW VALUES', values)
-
       entities.set(values)
     })
   }
@@ -118,17 +114,11 @@ export const useLevel = (levelId: string) => {
               title: 'Add ' + element.name,
               svgSource: element.buttonSvgSource,
               onClick: () => {
-                console.log('adding element')
                 if (!sheetObject.current) return
                 const entitiesValueBefore = entities.current[element.name] ?? ''
-                console.log('entitiesValueBefore', entitiesValueBefore)
-                console.log('element.name', element.name)
                 const newId = createEntityId()
-                console.log('newId', newId)
                 const updatedEntities = addEntity(entitiesValueBefore, newId)
-                console.log('updatedEntities', updatedEntities)
                 studio.transaction(({ set }) => {
-                  console.log('sheetObject.current', sheetObject.current)
                   if (!sheetObject.current) return
                   set(sheetObject.current.props, {
                     ...sheetObject.current.value,
