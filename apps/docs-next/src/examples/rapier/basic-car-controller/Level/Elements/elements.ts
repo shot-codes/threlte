@@ -82,6 +82,8 @@ export const useLevel = (levelId: string) => {
     )
 
     unsubscriber = sheetObject.current?.onValuesChange((values) => {
+      console.log('NEW VALUES', values)
+
       entities.set(values)
     })
   }
