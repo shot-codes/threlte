@@ -87,6 +87,8 @@
   }
 </script>
 
+<BasicBox selected={false} />
+
 <!-- <Floor /> -->
 <Sheet name="one">
   {#each $objects as [component, name, ids], index (name)}
