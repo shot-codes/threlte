@@ -15,6 +15,7 @@
   import { useTexture } from '@threlte/extras'
   import { AutoColliders, Collider, CollisionGroups } from '@threlte/rapier'
   import { MeshStandardMaterial, TorusGeometry } from 'three'
+  import Selection from './Selection.svelte'
   import { useSheetObjectToUpdateAutoColliders } from './useSheetObjectToUpdateAutoColliders'
 
   // color: 'Dark' | 'Green' | 'Light' | 'Orange' | 'Purple' | 'Red' = 'Dark'
@@ -34,6 +35,8 @@
 
   export let sheetObject: ISheetObject
   const { refresh } = useSheetObjectToUpdateAutoColliders(sheetObject)
+
+  export let selected: boolean
 </script>
 
 <T.Group {...$$restProps}>
@@ -52,6 +55,10 @@
   >
     <T is={geometry} />
     <T is={material} />
+
+    {#if selected}
+      <Selection />
+    {/if}
   </T.Mesh>
 
   <T.Group rotation.x={(90 * Math.PI) / 180}>

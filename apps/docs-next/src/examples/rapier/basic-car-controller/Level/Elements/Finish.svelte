@@ -11,10 +11,11 @@
   import { useTexture } from '@threlte/extras'
   import { Collider, CollisionGroups } from '@threlte/rapier'
   import { BoxGeometry, MeshStandardMaterial } from 'three'
+  import Selection from './Selection.svelte'
 
   // color: 'Dark' | 'Green' | 'Light' | 'Orange' | 'Purple' | 'Red' = 'Dark'
 
-  const map = useTexture(`/assets/basic-vehicle-controller/prototype-textures/Green/texture_05.png`)
+  const map = useTexture(`/assets/basic-vehicle-controller/prototype-textures/Light/texture_07.png`)
 
   $: if ($map && !material.map) {
     material.map = $map
@@ -24,9 +25,11 @@
   const dispatch = createRawEventDispatcher<{
     finishreached: undefined
   }>()
+
+  export let selected: boolean
 </script>
 
-<T.Group {...$$restProps}>
+<T.Group position.y={-2.5}>
   <Collider
     shape="cuboid"
     args={[5, 2.5, 5]}
@@ -37,7 +40,14 @@
       castShadow
     >
       <T is={geometry} />
-      <T is={material} />
+      <T
+        is={material}
+        color="#68FF6A"
+      />
+
+      {#if selected}
+        <Selection />
+      {/if}
     </T.Mesh>
   </Collider>
 

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { T, useFrame, useRender, useThrelte } from '@threlte/core'
-  import { Environment, interactivity, OrbitControls, Portal } from '@threlte/extras'
+  import { AudioListener, Environment, interactivity, OrbitControls, Portal } from '@threlte/extras'
   import { useRapier } from '@threlte/rapier'
   import { DEG2RAD } from 'three/src/math/MathUtils'
   import Car from './Car.svelte'
@@ -55,6 +55,8 @@
   }}
 />
 
+<AudioListener />
+
 <Environment
   path="/hdr/"
   files="shanghai_riverside_1k.hdr"
@@ -99,9 +101,7 @@
 <Car bind:carState>
   <T.PerspectiveCamera
     slot="camera"
-    rotation={[-90 * DEG2RAD, 70 * DEG2RAD, 90 * DEG2RAD]}
-    position.y={3}
-    position.x={8}
+    rotation={[-90 * DEG2RAD, 75 * DEG2RAD, 90 * DEG2RAD]}
     fov={70}
     makeDefault={!edit}
   />

@@ -8,13 +8,15 @@
   // Elements
   import BasicBox from './Elements/BasicBox.svelte'
   import Ramp from './Elements/Ramp.svelte'
-  import Checkpoint from './Elements/Checkpoint.svelte'
   import { derived } from 'svelte/store'
   import Finish from './Elements/Finish.svelte'
   import { createEventDispatcher } from 'svelte'
   import CheckpointRing from './Elements/CheckpointRing.svelte'
+  import RampInverse from './Elements/RampInverse.svelte'
+  import HalfBox from './Elements/HalfBox.svelte'
+  import Checkpoint from './Elements/Checkpoint.svelte'
 
-  const { registerElements, registerExtension, objects } = useLevel('one')
+  const { registerElements, registerExtension, objects, selectedId } = useLevel('one')
 
   const dispatch = createEventDispatcher<{
     levelfinished: undefined
@@ -28,9 +30,21 @@
     },
 
     {
+      name: 'HalfBox',
+      component: HalfBox,
+      buttonSvgSource: 'HB'
+    },
+
+    {
       name: 'Ramp',
       component: Ramp,
       buttonSvgSource: 'R'
+    },
+
+    {
+      name: 'RampInverse',
+      component: RampInverse,
+      buttonSvgSource: 'RI'
     },
 
     {
@@ -88,6 +102,7 @@
           <ElementSelector {object}>
             <svelte:component
               this={component}
+              selected={$selectedId === id}
               name={`${name}-${id}`}
               sheetObject={object}
               on:checkpointreached={() => {

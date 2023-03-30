@@ -3,7 +3,9 @@
   context="module"
 >
   const geometry = new BoxGeometry(10, 10, 10)
-  const material = new MeshStandardMaterial()
+  const material = new MeshStandardMaterial({
+    roughness: 0.4
+  })
 </script>
 
 <script lang="ts">
@@ -11,17 +13,24 @@
   import { useTexture } from '@threlte/extras'
   import { Collider } from '@threlte/rapier'
   import { BoxGeometry, MeshStandardMaterial } from 'three'
+  import Selection from './Selection.svelte'
 
   // color: 'Dark' | 'Green' | 'Light' | 'Orange' | 'Purple' | 'Red' = 'Dark'
-  const map = useTexture(`/assets/basic-vehicle-controller/prototype-textures/Dark/texture_06.png`)
+  const textures = useTexture({
+    map: `/assets/basic-vehicle-controller/prototype-textures/Dark/texture_06.png`,
+    roughnessMap: `/assets/basic-vehicle-controller/prototype-textures/Dark/texture_06_roughness.png`
+  })
 
-  $: if ($map && !material.map) {
-    material.map = $map
+  export let selected: boolean
+
+  $: if ($textures && !material.map) {
+    material.map = $textures.map
+    material.roughnessMap = $textures.roughnessMap
     material.needsUpdate = true
   }
 </script>
 
-<T.Group>
+<T.Group position.y={-5}>
   <Collider
     shape="cuboid"
     args={[5, 5, 5]}
@@ -33,6 +42,10 @@
     >
       <T is={geometry} />
       <T is={material} />
+
+      {#if selected}
+        <Selection />
+      {/if}
     </T.Mesh>
   </Collider>
 </T.Group>

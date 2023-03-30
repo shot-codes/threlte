@@ -41,12 +41,76 @@ const isISheetObject = (obj: any): obj is ISheetObject => {
   return obj && obj.type === 'Theatre_SheetObject_PublicAPI'
 }
 
+const duplicateElement = (
+  studio: IStudio,
+  entities: Record<string, string>,
+  sheetObject: ISheetObject,
+  levelSheetObjects: Record<string, ISheetObject>
+) => {
+  const [currentSelection] = studio.selection
+  if (!isISheetObject(currentSelection)) return
+  const { objectKey } = currentSelection.address
+
+  const valuesToApply = currentSelection.value
+
+  const elementName = objectKey.split('-')[0]
+  if (!elementName) return
+  const entitiesValueBefore = entities[elementName]
+  // there has to be something selected
+  if (!entitiesValueBefore) return
+
+  const newId = createEntityId()
+  studio.transaction(({ set }) => {
+    if (!sheetObject) return
+    set(sheetObject.props, {
+      ...sheetObject.value,
+      [elementName]: addEntity(entitiesValueBefore, newId)
+    })
+  })
+
+  let interval: ReturnType<typeof setInterval> | undefined = undefined
+  const clear = () => {
+    clearInterval(interval)
+  }
+
+  // we need to poll here because unsubscribing immediately
+  // after subscribing is dangerous
+  interval = setInterval(() => {
+    const object = levelSheetObjects[`${elementName}-${newId}`]
+    if (object) {
+      studio.transaction(({ set }) => {
+        set(object.props, valuesToApply)
+      })
+      studio.setSelection([object])
+      clear()
+    }
+  }, 50)
+}
+
 export const useLevel = (levelId: string) => {
   const levelSheetObjects = currentWritable<Record<string, ISheetObject>>({})
 
   setContext<typeof levelSheetObjects>('level-sheet-objects', levelSheetObjects)
 
   const { defaultProject, studio } = useTheatre()
+
+  // provide the key to the currently selected element
+  const selectedId = currentWritable<string | undefined>(undefined)
+  const unsubscribe = studio.current?.onSelectionChange((selection) => {
+    const firstSelected = selection[0]
+    if (!firstSelected || !isISheetObject(firstSelected)) {
+      selectedId.set(undefined)
+      return
+    }
+    const sheetObject = firstSelected
+    const [elementName, id] = sheetObject.address.objectKey.split('-')
+    if (!elementName || !id) {
+      selectedId.set(undefined)
+      return
+    }
+    selectedId.set(id)
+  })
+  onDestroy(() => unsubscribe?.())
 
   const sheet = defaultProject.current?.sheet(levelId)
 
@@ -105,26 +169,94 @@ export const useLevel = (levelId: string) => {
 
   const getExtensionConfig = (): IExtension => {
     return {
-      id: 'hello-world-extension',
+      id: 'elements-extension',
       toolbars: {
         global: ((set, studio) => {
           const addHandler = Object.values(elementConfigurations.current).map((element) => {
             return {
               type: 'Icon',
-              title: 'Add ' + element.name,
+              title: 'Add Or Replace ' + element.name,
               svgSource: element.buttonSvgSource,
               onClick: () => {
                 if (!sheetObject.current) return
-                const entitiesValueBefore = entities.current[element.name] ?? ''
-                const newId = createEntityId()
-                const updatedEntities = addEntity(entitiesValueBefore, newId)
-                studio.transaction(({ set }) => {
-                  if (!sheetObject.current) return
-                  set(sheetObject.current.props, {
-                    ...sheetObject.current.value,
-                    [element.name]: updatedEntities
+                const [currentSelection] = studio.selection
+                if (!isISheetObject(currentSelection)) {
+                  // add
+                  const entitiesValueBefore = entities.current[element.name] ?? ''
+                  const newId = createEntityId()
+                  const updatedEntities = addEntity(entitiesValueBefore, newId)
+                  studio.transaction(({ set }) => {
+                    if (!sheetObject.current) return
+                    set(sheetObject.current.props, {
+                      ...sheetObject.current.value,
+                      [element.name]: updatedEntities
+                    })
                   })
-                })
+                } else {
+                  // replace
+                  // get the object key of the currently selected object
+                  const { objectKey } = currentSelection.address
+
+                  // get the values of the currently selected object
+                  const valuesToApply = currentSelection.value
+
+                  // the object key contains the object name and the id
+                  const [elementName, elementId] = objectKey.split('-')
+                  if (!elementName || !elementId || elementName === element.name) return
+
+                  // we have to "delete" the old object, so we need to get all
+                  // entities from that objects type
+                  const entitiesValueBeforeOfOldElement = entities.current[elementName]
+                  // sanity check, there needs to be an associated entity
+                  if (!entitiesValueBeforeOfOldElement) return
+
+                  // we also need to "add" the new object, so we need to get all
+                  // entities from the new objects type.
+                  // Because it's possible that there's no entity yet, we need to
+                  // provide a default value.
+                  const entitiesValueBeforeOfNewElement = entities.current[element.name] ?? ''
+
+                  const updatedEntitiesRemovedObject = removeEntity(
+                    entitiesValueBeforeOfOldElement,
+                    elementId
+                  )
+
+                  // we'll make a new id
+                  const newId = createEntityId()
+                  const updatedEntitiesAddedObject = addEntity(
+                    entitiesValueBeforeOfNewElement,
+                    newId
+                  )
+
+                  studio.transaction(({ set }) => {
+                    if (!sheetObject.current) return
+                    set(sheetObject.current.props, {
+                      ...sheetObject.current.value,
+                      [elementName]: updatedEntitiesRemovedObject,
+                      [element.name]: updatedEntitiesAddedObject
+                    })
+                  })
+
+                  let interval: ReturnType<typeof setInterval> | undefined = undefined
+                  const clear = () => {
+                    clearInterval(interval)
+                  }
+
+                  // we need to poll here because unsubscribing immediately
+                  // after subscribing is dangerous
+                  interval = setInterval(() => {
+                    const object = levelSheetObjects.current[`${element.name}-${newId}`]
+                    console.log(object)
+
+                    if (object) {
+                      studio.transaction(({ set }) => {
+                        set(object.props, valuesToApply)
+                      })
+                      studio.setSelection([object])
+                      clear()
+                    }
+                  }, 50)
+                }
               }
             }
           })
@@ -134,38 +266,14 @@ export const useLevel = (levelId: string) => {
             title: 'Duplicate',
             svgSource:
               '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" fill="#fff" viewBox="0 0 256 256"><path d="M184,64H40a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H184a8,8,0,0,0,8-8V72A8,8,0,0,0,184,64Zm-8,144H48V80H176ZM224,40V184a8,8,0,0,1-16,0V48H72a8,8,0,0,1,0-16H216A8,8,0,0,1,224,40Z"></path></svg>',
-            onClick: async () => {
-              const [currentSelection] = studio.selection
-              if (!isISheetObject(currentSelection)) return
-              const { objectKey } = currentSelection.address
-
-              const valuesToApply = currentSelection.value
-
-              const elementName = objectKey.split('-')[0]
-              if (!elementName) return
-              const entitiesValueBefore = entities.current[elementName]
-              // there has to be something selected
-              if (!entitiesValueBefore) return
-
-              const newId = createEntityId()
-              studio.transaction(({ set }) => {
-                if (!sheetObject.current) return
-                set(sheetObject.current.props, {
-                  ...sheetObject.current.value,
-                  [elementName]: addEntity(entitiesValueBefore, newId)
-                })
-              })
-
-              const unsubscribe = levelSheetObjects.subscribe(async (objects) => {
-                const object = objects[`${elementName}-${newId}`]
-                if (!object) return
-                await tick()
-                studio.transaction(({ set }) => {
-                  set(object.props, valuesToApply)
-                })
-                studio.setSelection([object])
-                unsubscribe()
-              })
+            onClick: () => {
+              if (!sheetObject.current) return
+              duplicateElement(
+                studio,
+                entities.current,
+                sheetObject.current,
+                levelSheetObjects.current
+              )
             }
           }
 
@@ -178,6 +286,15 @@ export const useLevel = (levelId: string) => {
   }
 
   const onKeyPress = (e: KeyboardEvent) => {
+    if (e.key === 'D' && e.getModifierState('Shift') && studio.current && sheetObject.current) {
+      e.preventDefault()
+      duplicateElement(
+        studio.current,
+        entities.current,
+        sheetObject.current,
+        levelSheetObjects.current
+      )
+    }
     if (e.key === 'Backspace' && e.getModifierState('Control')) {
       e.preventDefault()
       if (!studio.current) return
@@ -214,6 +331,7 @@ export const useLevel = (levelId: string) => {
     sheetObject,
     objects,
     registerElements,
-    registerExtension
+    registerExtension,
+    selectedId
   }
 }

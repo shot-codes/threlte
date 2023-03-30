@@ -2,7 +2,6 @@
   import { globalStudio } from '../consts'
   import { onDestroy, onMount } from 'svelte'
   import { useTheatre } from '../../hooks/useTheatre'
-  import Studio from '@theatre/studio'
 
   const { studio: useTheatreStudio } = useTheatre()
 
@@ -12,6 +11,8 @@
       useTheatreStudio.set($globalStudio)
       return
     }
+    const pkg = await import('@theatre/studio')
+    const Studio = pkg.default
     Studio.initialize()
     globalStudio.set(Studio)
     useTheatreStudio.set(Studio)

@@ -12,14 +12,15 @@
     Vector as RapierVector
   } from '@dimforge/rapier3d-compat'
   import { T, useFrame } from '@threlte/core'
-  import { Text } from '@threlte/extras'
+  import { Audio, Text } from '@threlte/extras'
   import { Collider, computeBitMask, RigidBody, useRapier } from '@threlte/rapier'
   import { mapRange } from '@tweakpane/core'
   import { spring } from 'svelte/motion'
-  import { Euler, Group, Quaternion, Vector3 } from 'three'
-  import { clamp } from 'three/src/math/MathUtils'
+  import { Euler, Group, Object3D, Quaternion, Vector3 } from 'three'
+  import { clamp, lerp, mapLinear } from 'three/src/math/MathUtils'
   import type { CarState } from './types'
-  import { length, normalize } from './vectorUtils'
+  import { useArrowKeys } from './useArrowKeys'
+  import { fromAToB, length, normalize } from './vectorUtils'
 
   const { world, paused } = useRapier()
 
@@ -27,8 +28,12 @@
 
   let collider: RapierCollider
   let group: Group
+  let dummyGroup: Group
+  let innerGroup: Group
 
   const steeringAngle = spring(0)
+
+  const axis = useArrowKeys()
 
   enum Wheel {
     'FL' = 'FL',
@@ -185,14 +190,51 @@
   const linearDampingWhenBrakingInAir = 0.5
 
   const virtualCenterOfMass = new Vector3(0.15, -0.25, 0)
+
+  // https://ease-everything.vercel.app/?path=%255B%2522Path%2522%252C%257B%2522applyMatrix%2522%253Atrue%252C%2522segments%2522%253A%255B%255B0%252C0%255D%252C%255B25%252C200%255D%252C%255B100%252C400%255D%252C%255B100%252C225%255D%252C%255B200%252C400%255D%252C%255B200%252C275%255D%252C%255B300%252C400%255D%252C%255B300%252C300%255D%252C%255B400%252C400%255D%255D%252C%2522strokeColor%2522%253A%255B0.05882%252C0.38039%252C0.99608%255D%252C%2522strokeWidth%2522%253A2%257D%255D
+  const soundPlaybackMap = (t: number) => {
+    if (t < 0.0625) return ((0.5 - 0) / (0.0625 - 0)) * (t - 0) + 0
+    if (t < 0.25) return ((1 - 0.5) / (0.25 - 0.0625)) * (t - 0.0625) + 0.5
+    if (t < 0.25) return ((0.5625 - 1) / (0.25 - 0.25)) * (t - 0.25) + 1
+    if (t < 0.5) return ((1 - 0.5625) / (0.5 - 0.25)) * (t - 0.25) + 0.5625
+    if (t < 0.5) return ((0.6875 - 1) / (0.5 - 0.5)) * (t - 0.5) + 1
+    if (t < 0.75) return ((1 - 0.6875) / (0.75 - 0.5)) * (t - 0.5) + 0.6875
+    if (t < 0.75) return ((0.75 - 1) / (0.75 - 0.75)) * (t - 0.75) + 1
+    return ((1 - 0.75) / (1 - 0.75)) * (t - 0.75) + 0.75
+  }
+  const minPlaybackRate = 1
+  const maxPlaybackRate = 3.5
+  const idleVolume = 0.6
+  const loadVolume = 1.0
+  /**
+   * Defines, how much the engine noise is reduced in volume when the
+   * playbackRate is at minPlaybackRate comapred to maxPlaybackRate.
+   */
+  const volumePlaybackRateMultiplier = 0.4
   /**
    * -------------------------------------------------------
    * CAR CONFIGURATION END
    * -------------------------------------------------------
    */
 
+  /**
+   * -------------------------------------------------------
+   * VIEW CONFIGURATION
+   * -------------------------------------------------------
+   */
+
+  const desiredCameraDistance = 8
+  const desiredCameraHeight = 3
+  const cameraDistanceToWalls = 0.5
+
+  /**
+   * -------------------------------------------------------
+   * VIEW CONFIGURATION END
+   * -------------------------------------------------------
+   */
+
   const spawn = () => {
-    if (!rigidBody) return
+    if (!rigidBody || !group) return
     if (rigidBody.bodyType() !== RigidBodyType.Dynamic) {
       rigidBody.setBodyType(RigidBodyType.Dynamic, true)
     }
@@ -207,6 +249,7 @@
     rigidBody.setAngvel({ x: 0, y: 0, z: 0 }, true)
     rigidBody.setLinvel({ x: 0, y: 0, z: 0 }, true)
     rigidBody.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true)
+    group.quaternion.set(0, 0, 0, 1)
   }
 
   // as soon as the rigidBody is available, we set its position and type to dynamic
@@ -257,7 +300,7 @@
     }
   }
 
-  export const carState: CarState = {
+  export let carState: CarState = {
     isForward: false,
     isBraking: false,
     worldPosition: new Vector3(),
@@ -279,6 +322,9 @@
     },
     velocity: 0
   }
+
+  let playbackRate = minPlaybackRate
+  let volume = idleVolume
 
   /**
    * -------------------------------------------------------
@@ -359,9 +405,6 @@
     }
   }
 
-  let xAxis = 0
-  let yAxis = 0
-
   const lengthOfRapierVector = (v: RapierVector) => {
     return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
   }
@@ -440,12 +483,36 @@
     let finalLinearDamping = linearDamping
 
     // update the inner group position and rotation
-    if (group) {
+    updateCameraPosition: {
+      if (!group || !dummyGroup || !innerGroup) break updateCameraPosition
+      // cast a ray from the center of the car to the desired camera position
+      group.quaternion.slerp(tempQuaternionA, 0.1)
       group.position.x = currentWorldPosition.x
       group.position.y = currentWorldPosition.y
       group.position.z = currentWorldPosition.z
-      setFromRapierRotation(currentWorldRotation, tempQuaternionA)
-      group.rotation.y = trueAxisAngle('y', tempQuaternionA)
+      dummyGroup.getWorldPosition(tempVectorA)
+      const origin = currentWorldPosition
+      const direction = fromAToB(origin, tempVectorA)
+      const rayLength = length(direction)
+      const normalizedDirection = normalize(direction)
+      const ray = new Ray(origin, normalizedDirection)
+      const hit = world.castRay(
+        ray,
+        rayLength + cameraDistanceToWalls,
+        true,
+        undefined,
+        collideWithGroup,
+        collider,
+        rigidBody
+      )
+      if (!hit) {
+        innerGroup.position.copy(dummyGroup.position)
+      } else {
+        innerGroup.position
+          .copy(dummyGroup.position)
+          .normalize()
+          .multiplyScalar(hit.toi - cameraDistanceToWalls)
+      }
     }
 
     // convert the ray dir to world space
@@ -552,10 +619,10 @@
         .divideScalar(groundedWheels.length)
 
       let mode: 'accelerate' | 'brake' = 'accelerate'
-      if (isForward && yAxis < 0) mode = 'accelerate'
-      else if (isForward && yAxis > 0) mode = 'brake'
-      else if (!isForward && yAxis > 0) mode = 'accelerate'
-      else if (!isForward && yAxis < 0) mode = 'brake'
+      if (isForward && $axis.y > 0) mode = 'accelerate'
+      else if (isForward && $axis.y < 0) mode = 'brake'
+      else if (!isForward && $axis.y < 0) mode = 'accelerate'
+      else if (!isForward && $axis.y > 0) mode = 'brake'
 
       const multiplier =
         mode === 'accelerate'
@@ -574,7 +641,7 @@
 
       const forwardImpulse = threeVectorToRapierVector(
         tempVectorA
-          .set(yAxis * multiplier * map(velocityNormalized) * correctedDelta, 0, 0)
+          .set(-$axis.y * multiplier * map(velocityNormalized) * correctedDelta, 0, 0)
           .applyQuaternion(
             tempQuaternionA.set(
               currentWorldRotation.x,
@@ -608,7 +675,7 @@
         // the side torque is a function of the velocity multiplied by the
         // steering input and a multiplier
         const steeringTorque =
-          (isForward ? xAxis : -xAxis) *
+          (isForward ? $axis.x : -$axis.x) *
           steeringTorqueMultiplier *
           correctedDelta *
           steeringMap(velocityNormalized)
@@ -669,9 +736,31 @@
 
       // we're on the ground, so set the linear damping to the default
       finalLinearDamping = linearDamping
+
+      // set the playback rate according to the ground speed when we're touching the ground
+      const desiredPlaybackRate = mapLinear(
+        soundPlaybackMap(clamp(mapLinear(carState.velocity, 0, maxDesiredVelocity, 0, 1), 0, 1)),
+        0,
+        1,
+        minPlaybackRate,
+        maxPlaybackRate
+      )
+      // we're lerping toward desiredPlaybackRate
+      playbackRate = lerp(playbackRate, desiredPlaybackRate, 0.4)
     } else {
+      // if we're not touching the ground, the playback rate is adhering to the forward input
+      const desiredPlaybackRate = mapLinear(
+        soundPlaybackMap(Math.max($axis.y, 0)),
+        0,
+        1,
+        minPlaybackRate,
+        maxPlaybackRate
+      )
+      // we're lerping toward desiredPlaybackRate
+      playbackRate = lerp(playbackRate, desiredPlaybackRate, 0.1)
+
       // we also set carState.isBraking based on the yAxis
-      carState.isBraking = yAxis > 0
+      carState.isBraking = $axis.y < 0
 
       // if braking mid-air, the car can be stopped rotating and moving slightly
       if (carState.isBraking) {
@@ -687,8 +776,17 @@
     // even if we're airborn, we still set the steering angle
     // get the linear velocity of the car
     steeringAngle.set(
-      (visualSteeringMap(velocityNormalized) * xAxis * maxSteeringAngle * Math.PI) / 180
+      (visualSteeringMap(velocityNormalized) * $axis.x * maxSteeringAngle * Math.PI) / 180
     )
+
+    // the volume is set by the "forward" input
+    const desiredVolume =
+      mapLinear(Math.max($axis.y, 0), 0, 1, idleVolume, loadVolume) *
+      mapLinear(playbackRate, minPlaybackRate, maxPlaybackRate, volumePlaybackRateMultiplier, 1)
+    // we're lerping toward desiredVolume
+    const volumeIsGoingUp = desiredVolume > volume
+    const t = volumeIsGoingUp ? 0.4 : 0.05
+    volume = lerp(volume, desiredVolume, t)
 
     // set the dampings
     rigidBody.setAngularDamping(finalAngularDamping)
@@ -704,7 +802,24 @@
 
     // tell svelte to update stuff
     wheelStates = wheelStates
+    carState = carState
   })
+
+  // const audioLoader = useLoader(AudioLoader)
+  // const audioBuffer = audioLoader.load('/assets/basic-vehicle-controller/engine5.wav')
+  // const audioCtx = new AudioContext()
+  // const source = audioCtx.createBufferSource()
+  // source.connect(audioCtx.destination)
+
+  // $: if ($audioBuffer && !$paused) {
+  //   source.buffer = $audioBuffer
+  //   ;(window as any).source = source
+  //   source.loop = true
+  //   source.start(0)
+  // } else if ($paused) {
+  //   source.stop()
+  // }
+  ;(window as any).someValue = 5
 </script>
 
 <svelte:window
@@ -714,33 +829,17 @@
       respawn()
     }
   }}
-  on:keydown={(e) => {
-    const { key } = e
-    if (key === 'ArrowUp') {
-      e.preventDefault()
-      yAxis = -1
-    } else if (key === 'ArrowDown') {
-      e.preventDefault()
-      yAxis = 1
-    } else if (key === 'ArrowLeft') {
-      e.preventDefault()
-      xAxis = 1
-    } else if (key === 'ArrowRight') {
-      e.preventDefault()
-      xAxis = -1
-    }
-  }}
-  on:keyup={(e) => {
-    const { key } = e
-    if (key === 'ArrowUp' || key === 'ArrowDown') {
-      e.preventDefault()
-      yAxis = 0
-    } else if (key === 'ArrowLeft' || key === 'ArrowRight') {
-      e.preventDefault()
-      xAxis = 0
-    }
-  }}
 />
+
+{#if !$paused}
+  <Audio
+    src="/assets/basic-vehicle-controller/engine6.wav"
+    loop
+    autoplay
+    {volume}
+    {playbackRate}
+  />
+{/if}
 
 <T.Group>
   <RigidBody
@@ -831,10 +930,17 @@
     bind:ref={group}
     let:ref
   >
-    <slot
-      name="camera"
-      {ref}
+    <T.Group
+      bind:ref={dummyGroup}
+      position.x={desiredCameraDistance}
+      position.y={desiredCameraHeight}
     />
+    <T.Group bind:ref={innerGroup}>
+      <slot
+        name="camera"
+        {ref}
+      />
+    </T.Group>
   </T.Group>
 </T.Group>
 

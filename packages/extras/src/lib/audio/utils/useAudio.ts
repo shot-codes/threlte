@@ -114,8 +114,11 @@ export const useAudio = <T extends Audio<GainNode> | PositionalAudio>(audio: T) 
   })
 
   onDestroy(() => {
-    if (audio.isPlaying) stop()
-    if (audio.source) audio.disconnect()
+    try {
+      stop()
+    } catch (error) {
+      console.warn('Error while destroying audio', error)
+    }
   })
 
   return {

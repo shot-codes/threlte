@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Canvas } from '@threlte/core'
+  import { Grid } from '@threlte/extras'
   import { Debug, World } from '@threlte/rapier'
   import { Theatre } from '@threlte/theatre'
   import Scene from './Scene.svelte'
@@ -23,6 +24,11 @@
           <Debug
             depthTest={false}
             depthWrite={false}
+          />
+          <Grid
+            sectionSize={10}
+            gridSize={1000}
+            cellSize={1}
           />
         {/if}
         <Scene />

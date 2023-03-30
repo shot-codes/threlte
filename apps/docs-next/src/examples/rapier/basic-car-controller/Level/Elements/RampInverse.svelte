@@ -16,16 +16,19 @@ Command: npx @threlte/gltf@1.0.0-next.0 ./ramp.glb -T -t --shadows -r /assets/ba
 
   type GLTFResult = {
     nodes: {
-      Ramp: THREE.Mesh
+      RampInverse: THREE.Mesh
     }
     materials: {
       Ramps: THREE.MeshStandardMaterial
     }
   }
 
-  const gltf = useGltf<GLTFResult>('/assets/basic-vehicle-controller/ramp-transformed.glb', {
-    useDraco: true
-  })
+  const gltf = useGltf<GLTFResult>(
+    '/assets/basic-vehicle-controller/ramp_inverse-transformed.glb',
+    {
+      useDraco: true
+    }
+  )
 
   export let sheetObject: ISheetObject
   const { refresh } = useSheetObjectToUpdateAutoColliders(sheetObject)
@@ -42,7 +45,7 @@ Command: npx @threlte/gltf@1.0.0-next.0 ./ramp.glb -T -t --shadows -r /assets/ba
       <T.Mesh
         castShadow
         receiveShadow
-        geometry={$gltf.nodes.Ramp.geometry}
+        geometry={$gltf.nodes.RampInverse.geometry}
         rotation={[Math.PI / 2, 0, 0]}
       >
         <T is={$gltf.materials.Ramps} />

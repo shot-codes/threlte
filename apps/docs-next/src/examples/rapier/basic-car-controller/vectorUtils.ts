@@ -12,3 +12,11 @@ export const normalize = (v: Vector): Vector => {
     z: v.z / l
   }
 }
+
+export const fromAToB = (a: Vector, b: Vector): Vector => {
+  return {
+    x: b.x - a.x,
+    y: b.y - a.y,
+    z: b.z - a.z
+  }
+}
