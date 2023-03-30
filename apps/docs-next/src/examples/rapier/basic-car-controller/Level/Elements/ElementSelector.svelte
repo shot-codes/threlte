@@ -3,6 +3,7 @@
   import { T } from '@threlte/core'
   import { useCursor } from '@threlte/extras'
   import { useTheatre } from '@threlte/theatre'
+  import { onDestroy, onMount } from 'svelte'
 
   const { studio } = useTheatre()
 
@@ -14,6 +15,17 @@
   }
 
   const { onPointerEnter, onPointerLeave } = useCursor()
+
+  onMount(() => {
+    studio.current?.setSelection([object])
+  })
+
+  onDestroy(() => {
+    const currentSelection = studio.current?.selection
+    if (currentSelection?.includes(object)) {
+      studio.current?.setSelection([])
+    }
+  })
 </script>
 
 <T.Group
