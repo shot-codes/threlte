@@ -29,6 +29,7 @@ export const useAudio = <T extends Audio<GainNode> | PositionalAudio>(audio: T) 
   const loaded = currentWritable(false)
   const autoplay = currentWritable(false)
   const shouldPlay = currentWritable(false)
+  let audioDestroyed = false
 
   const loader = useLoader(AudioLoader)
 
@@ -76,7 +77,11 @@ export const useAudio = <T extends Audio<GainNode> | PositionalAudio>(audio: T) 
     }
     if (audio.context.state !== 'running') {
       await audio.context.resume()
+      if (audioDestroyed) {
+        return
+      }
     }
+
     return audio.play(delay)
   }
 
@@ -115,6 +120,7 @@ export const useAudio = <T extends Audio<GainNode> | PositionalAudio>(audio: T) 
 
   onDestroy(() => {
     try {
+      audioDestroyed = true
       stop()
     } catch (error) {
       console.warn('Error while destroying audio', error)
