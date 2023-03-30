@@ -87,6 +87,29 @@ const duplicateElement = (
   }, 50)
 }
 
+const removeElement = (
+  studio: IStudio,
+  entities: Record<string, string>,
+  sheetObject: ISheetObject
+) => {
+  const [currentSelection] = studio.selection
+  if (!isISheetObject(currentSelection)) return
+  const { objectKey } = currentSelection.address
+  const [elementName, entityId] = objectKey.split('-')
+  if (!elementName || !entityId) return
+  const entitiesValueBefore = entities[elementName]
+  if (!entitiesValueBefore) return
+  const newEntitiesValue = removeEntity(entitiesValueBefore, entityId)
+  studio.transaction(({ set }) => {
+    if (!sheetObject) return
+    set(sheetObject.props, {
+      ...sheetObject.value,
+      [elementName]: newEntitiesValue
+    })
+  })
+  studio.setSelection([])
+}
+
 export const useLevel = (levelId: string) => {
   const levelSheetObjects = currentWritable<Record<string, ISheetObject>>({})
 
@@ -167,7 +190,47 @@ export const useLevel = (levelId: string) => {
     createObject()
   }
 
-  const getExtensionConfig = (): IExtension => {
+  const getControlsExtension = (): IExtension => {
+    return {
+      id: 'controls-extension',
+      toolbars: {
+        global: ((set, studio) => {
+          const duplicate = {
+            type: 'Icon',
+            title: 'Duplicate Element',
+            svgSource:
+              '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" fill="#fff" viewBox="0 0 256 256"><path d="M184,64H40a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H184a8,8,0,0,0,8-8V72A8,8,0,0,0,184,64Zm-8,144H48V80H176ZM224,40V184a8,8,0,0,1-16,0V48H72a8,8,0,0,1,0-16H216A8,8,0,0,1,224,40Z"></path></svg>',
+            onClick: () => {
+              if (!sheetObject.current) return
+              duplicateElement(
+                studio,
+                entities.current,
+                sheetObject.current,
+                levelSheetObjects.current
+              )
+            }
+          }
+
+          const remove = {
+            type: 'Icon',
+            title: 'Remove Element',
+            svgSource:
+              '<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" fill="#fff" viewBox="0 0 256 256"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"></path></svg>',
+            onClick: () => {
+              if (!sheetObject.current) return
+              removeElement(studio, entities.current, sheetObject.current)
+            }
+          }
+
+          const allHandler = [duplicate, remove] as any
+          set(allHandler)
+        }) as (set: (config: ToolsetConfig) => void, studio: IStudio) => () => void
+      },
+      panes: []
+    } as IExtension
+  }
+
+  const getElementsExtension = (): IExtension => {
     return {
       id: 'elements-extension',
       toolbars: {
@@ -260,25 +323,7 @@ export const useLevel = (levelId: string) => {
               }
             }
           })
-
-          const duplicate = {
-            type: 'Icon',
-            title: 'Duplicate',
-            svgSource:
-              '<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76" fill="#fff" viewBox="0 0 256 256"><path d="M184,64H40a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H184a8,8,0,0,0,8-8V72A8,8,0,0,0,184,64Zm-8,144H48V80H176ZM224,40V184a8,8,0,0,1-16,0V48H72a8,8,0,0,1,0-16H216A8,8,0,0,1,224,40Z"></path></svg>',
-            onClick: () => {
-              if (!sheetObject.current) return
-              duplicateElement(
-                studio,
-                entities.current,
-                sheetObject.current,
-                levelSheetObjects.current
-              )
-            }
-          }
-
-          const allHandler = [...addHandler, duplicate] as any
-          set(allHandler)
+          set(addHandler as any)
         }) as (set: (config: ToolsetConfig) => void, studio: IStudio) => () => void
       },
       panes: []
@@ -296,24 +341,9 @@ export const useLevel = (levelId: string) => {
       )
     }
     if (e.key === 'Backspace' && e.getModifierState('Control')) {
+      if (!studio.current || !sheetObject.current) return
       e.preventDefault()
-      if (!studio.current) return
-      const [currentSelection] = studio.current.selection
-      if (!isISheetObject(currentSelection)) return
-      const { objectKey } = currentSelection.address
-      const [elementName, entityId] = objectKey.split('-')
-      if (!elementName || !entityId) return
-      const entitiesValueBefore = entities.current[elementName]
-      if (!entitiesValueBefore) return
-      const newEntitiesValue = removeEntity(entitiesValueBefore, entityId)
-      studio.current.transaction(({ set }) => {
-        if (!sheetObject.current) return
-        set(sheetObject.current.props, {
-          ...sheetObject.current.value,
-          [elementName]: newEntitiesValue
-        })
-      })
-      studio.current.setSelection([])
+      removeElement(studio.current, entities.current, sheetObject.current)
     }
   }
 
@@ -324,7 +354,8 @@ export const useLevel = (levelId: string) => {
 
   const registerExtension = () => {
     if (!studio.current) return
-    studio.current.extend(getExtensionConfig())
+    studio.current.extend(getElementsExtension())
+    studio.current.extend(getControlsExtension())
   }
 
   return {
