@@ -8,3 +8,5 @@ when the player interacts with them:
 	- This event needs to be emitted from Elements that are used as checkpoints. Their name must start with "Checkpoint".
 - `on:finishreached`
 	- There can be many finish elements in the level. A finish is only reached when the player has reached all checkpoints before it.
+
+On top of that, an element MUST emit a `load` event when it is loaded.

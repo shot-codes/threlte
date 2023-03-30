@@ -26,7 +26,7 @@
     finishreached: undefined
   }>()
 
-  export let selected: boolean
+  export let selected: boolean = false
 </script>
 
 <T.Group position.y={-2.5}>

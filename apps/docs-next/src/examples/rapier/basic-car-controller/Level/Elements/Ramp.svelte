@@ -27,10 +27,10 @@ Command: npx @threlte/gltf@1.0.0-next.0 ./ramp.glb -T -t --shadows -r /assets/ba
     useDraco: true
   })
 
-  export let sheetObject: ISheetObject
+  export let sheetObject: ISheetObject | undefined = undefined
   const { refresh } = useSheetObjectToUpdateAutoColliders(sheetObject)
 
-  export let selected: boolean
+  export let selected: boolean = false
 </script>
 
 {#if $gltf}

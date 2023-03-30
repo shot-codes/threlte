@@ -107,6 +107,20 @@
   const backwardImpulseMap = (_t: number) => 1
   const brakeImpulseMultiplier = 1400
   const brakeImpulseMap = (_t: number) => 1
+
+  /**
+   * Maps the inclination to the power of the impulse applied to the wheels. The
+   * incliniation goes from 0 (car is on a vertical surface going down) to 1
+   * (car is on a vertical surface going up) where 0.5 is horizontal.
+   */
+  // https://ease-everything.vercel.app/?path=%255B%2522Path%2522%252C%257B%2522applyMatrix%2522%253Atrue%252C%2522segments%2522%253A%255B%255B0%252C400%255D%252C%255B200%252C375%255D%252C%255B300%252C325%255D%252C%255B350%252C250%255D%252C%255B400%252C100%255D%255D%252C%2522strokeColor%2522%253A%255B0.05882%252C0.38039%252C0.99608%255D%252C%2522strokeWidth%2522%253A2%257D%255D
+  const forwardImpulseInclinationMap = (t: number) => {
+    if (t < 0.5) return ((0.9375 - 1) / (0.5 - 0)) * (t - 0) + 1
+    if (t < 0.75) return ((0.8125 - 0.9375) / (0.75 - 0.5)) * (t - 0.5) + 0.9375
+    if (t < 0.875) return ((0.6875 - 0.8125) / (0.875 - 0.75)) * (t - 0.75) + 0.8125
+    return ((0.375 - 0.6875) / (1 - 0.875)) * (t - 0.875) + 0.6875
+  }
+
   const steeringTorqueMultiplier = 250
   const sideImpulseMultiplier = 140
 
@@ -652,16 +666,34 @@
           )
           .projectOnPlane(averageImpactSurfaceNormal)
       )
+      // const y = averageImpactSurfaceNormal.clone().normalize().y
+
+      // the inclination is:
+      // 0 when the car on a vertical surface going down
+      // 0.5 when the car is on a flat surface
+      // 1 when the car is on a vertical surface going up
+      const inclination = mapLinear(
+        setFromRapierVector(forwardImpulse, tempVectorA).normalize().y,
+        -1,
+        1,
+        0,
+        1
+      )
+      const finalImpulse = threeVectorToRapierVector(
+        setFromRapierVector(forwardImpulse, tempVectorA).multiplyScalar(
+          forwardImpulseInclinationMap(inclination)
+        )
+      )
+
       const forwardImpulseOrigin = localPositionToWorld(
         currentWorldPosition,
         currentWorldRotation,
         virtualCenterOfMass
       )
-      rigidBody.applyImpulseAtPoint(forwardImpulse, forwardImpulseOrigin, true)
-      carState.forwardImpulse.direction = normalize(forwardImpulse)
-      ;(window as any).fi = `${forwardImpulse.x}, ${forwardImpulse.y}, ${forwardImpulse.z}`
+      rigidBody.applyImpulseAtPoint(finalImpulse, forwardImpulseOrigin, true)
+      carState.forwardImpulse.direction = normalize(finalImpulse)
       carState.forwardImpulse.origin = forwardImpulseOrigin
-      carState.forwardImpulse.length = lengthOfRapierVector(forwardImpulse)
+      carState.forwardImpulse.length = lengthOfRapierVector(finalImpulse)
 
       /**
        * -----------------------------------------

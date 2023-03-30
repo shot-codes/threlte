@@ -33,10 +33,10 @@
     checkpointreached: undefined
   }>()
 
-  export let sheetObject: ISheetObject
+  export let sheetObject: ISheetObject | undefined = undefined
   const { refresh } = useSheetObjectToUpdateAutoColliders(sheetObject)
 
-  export let selected: boolean
+  export let selected: boolean = false
 </script>
 
 <T.Group {...$$restProps}>

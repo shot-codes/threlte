@@ -9,6 +9,7 @@
   import MuscleCarWheel from './MuscleCarWheel.svelte'
   import type { CarState } from './types'
   import Stats from 'stats.js'
+  import Game from './Game.svelte'
 
   let carState: CarState
 
@@ -86,7 +87,7 @@
   </T.DirectionalLight>
 {/if}
 
-<Level />
+<Game />
 
 <T.PerspectiveCamera
   position.x={30}

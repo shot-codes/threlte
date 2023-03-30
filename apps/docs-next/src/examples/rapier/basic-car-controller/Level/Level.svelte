@@ -16,7 +16,9 @@
   import HalfBox from './Elements/HalfBox.svelte'
   import Checkpoint from './Elements/Checkpoint.svelte'
 
-  const { registerElements, registerExtension, objects, selectedId } = useLevel('one')
+  export let levelId: string
+
+  const { registerElements, registerExtension, objects, selectedId } = useLevel(levelId)
 
   const dispatch = createEventDispatcher<{
     levelfinished: undefined

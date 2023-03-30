@@ -21,7 +21,7 @@
     roughnessMap: `/assets/basic-vehicle-controller/prototype-textures/Dark/texture_06_roughness.png`
   })
 
-  export let selected: boolean
+  export let selected: boolean = false
 
   $: if ($textures && !material.map) {
     material.map = $textures.map

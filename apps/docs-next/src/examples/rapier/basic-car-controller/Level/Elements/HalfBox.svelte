@@ -25,7 +25,7 @@ Command: npx @threlte/gltf@1.0.0-next.0 ./ramp.glb -T -t --shadows -r /assets/ba
     useDraco: true
   })
 
-  export let selected: boolean
+  export let selected: boolean = false
 </script>
 
 {#if $gltf}
