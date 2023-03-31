@@ -638,10 +638,7 @@
         .divideScalar(groundedWheels.length)
 
       let mode: 'accelerate' | 'brake' = 'accelerate'
-      if (isForward && $axis.y > 0) mode = 'accelerate'
-      else if (isForward && $axis.y < 0) mode = 'brake'
-      else if (!isForward && $axis.y < 0) mode = 'accelerate'
-      else if (!isForward && $axis.y > 0) mode = 'brake'
+      if (isForward && $axis.y < 0) mode = 'brake'
 
       const multiplier =
         mode === 'accelerate'
