@@ -10,6 +10,7 @@
   import Game from './Game.svelte'
   import MuscleCar from './MuscleCar.svelte'
   import MuscleCarWheel from './MuscleCarWheel.svelte'
+  import { debug } from './stores/app'
   import type { CarState } from './types'
 
   let carState: CarState
@@ -102,7 +103,10 @@
   <OrbitControls />
 </T.PerspectiveCamera>
 
-<Car bind:carState>
+<Car
+  bind:carState
+  debug={$debug}
+>
   <T.PerspectiveCamera
     slot="camera"
     rotation={[-90 * DEG2RAD, 75 * DEG2RAD, 90 * DEG2RAD]}

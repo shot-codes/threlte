@@ -13,8 +13,7 @@
   import MuscleCar from './MuscleCar.svelte'
   import MuscleCarWheel from './MuscleCarWheel.svelte'
   import Scene from './Scene.svelte'
-
-  let debug = false
+  import { debug } from './stores/app'
 
   const { finishedOnce } = useProgress()
   $: console.log($finishedOnce)
@@ -23,7 +22,9 @@
 <svelte:window
   on:keypress={({ key }) => {
     if (key === 'o') {
-      debug = !debug
+      debug.update((value) => {
+        return !value
+      })
     }
   }}
 />
@@ -60,15 +61,10 @@
         </T.Group>
       {:else}
         <Theatre>
-          {#if debug}
+          {#if $debug}
             <Debug
               depthTest={false}
               depthWrite={false}
-            />
-            <Grid
-              sectionSize={10}
-              gridSize={1000}
-              cellSize={1}
             />
           {/if}
           <Scene />

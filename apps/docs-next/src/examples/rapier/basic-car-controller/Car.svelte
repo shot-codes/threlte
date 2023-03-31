@@ -107,6 +107,12 @@
     }
   }
 
+  const clearImpulseVisualisation = (id: string) => {
+    impulseVisualisations = impulseVisualisations.filter(
+      (impulseVisualisation) => impulseVisualisation.id !== id
+    )
+  }
+
   const axis = useArrowKeys()
 
   enum Wheel {
@@ -348,6 +354,11 @@
     }
   ]
 
+  const flWheelState = wheelStates[0]!
+  const frWheelState = wheelStates[1]!
+  const rlWheelState = wheelStates[2]!
+  const rrWheelState = wheelStates[3]!
+
   export let carState: CarState = {
     isForward: false,
     isBraking: false,
@@ -561,17 +572,25 @@
 
         suspensionForceSum += tempVectorB.length()
 
-        rigidBody.applyImpulseAtPoint(
-          { x: tempVectorB.x, y: tempVectorB.y, z: tempVectorB.z },
-          ray.pointAt(hit.toi),
-          true
-        )
+        const suspensionImpulse = { x: tempVectorB.x, y: tempVectorB.y, z: tempVectorB.z }
+        rigidBody.applyImpulseAtPoint(suspensionImpulse, ray.pointAt(hit.toi), true)
+        if (debug) {
+          updateImpulseVisualisation(`${wheelState.type}-suspension`, {
+            color: 'red',
+            impulse: suspensionImpulse,
+            origin: ray.pointAt(hit.toi),
+            multiplier: 1 / suspensionImpulseMultiplier
+          })
+        }
 
         wheelState.suspensionLength = hit.toi
 
         // update wheel group position
       } else {
         wheelState.onGround = false
+        if (debug) {
+          clearImpulseVisualisation(`${wheelState.type}-suspension`)
+        }
       }
 
       // update wheel state
@@ -678,6 +697,15 @@
         virtualCenterOfMass
       )
 
+      if (debug) {
+        updateImpulseVisualisation(`forwardImpulse`, {
+          color: 'blue',
+          impulse: finalForwardImpulse,
+          origin: forwardImpulseOrigin,
+          multiplier: 1 / forwardImpulseMultiplier
+        })
+      }
+
       /**
        * -----------------------------------------
        * STEERING TORQUE
@@ -699,9 +727,25 @@
           .normalize()
           .multiplyScalar(steeringTorque)
         rigidBody.applyTorqueImpulse(steeringTorqueImpulse, true)
+
+        if (debug) {
+          updateImpulseVisualisation(`steeringTorque`, {
+            color: 'green',
+            impulse: steeringTorqueImpulse,
+            origin: currentWorldPosition,
+            multiplier: 1 / steeringTorqueMultiplier
+          })
+        }
       } else {
         // if we're not moving, reset the angular velocity
         finalAngularDamping = angularDampingWhenBelowSteeringVelocityThreshold
+        if (debug) {
+          updateImpulseVisualisation(`steeringTorque`, {
+            color: 'green',
+            impulse: { x: 0, y: 0, z: 0 },
+            origin: currentWorldPosition
+          })
+        }
       }
 
       /**
@@ -735,8 +779,17 @@
 
       const sideImpulse = {
         x: sideImpulseVector.x,
-        y: 0,
+        y: sideImpulseVector.y,
         z: sideImpulseVector.z
+      }
+
+      if (debug) {
+        updateImpulseVisualisation(`sideImpulse`, {
+          color: 'orange',
+          impulse: sideImpulse,
+          origin: forwardImpulseOrigin,
+          multiplier: 1 / carWeight
+        })
       }
 
       /**
@@ -770,6 +823,15 @@
       // apply summed	forward and side impulse
       rigidBody.applyImpulseAtPoint(forwardSideSum, forwardImpulseOrigin, true)
 
+      if (debug) {
+        updateImpulseVisualisation(`summedSideForwardImpulse`, {
+          color: 'yellow',
+          impulse: forwardSideSum,
+          origin: forwardImpulseOrigin,
+          multiplier: 1 / maxFrictionForce
+        })
+      }
+
       // we're on the ground, so set the linear damping to the default
       finalLinearDamping = linearDamping
 
@@ -784,6 +846,12 @@
       // we're lerping toward desiredPlaybackRate
       playbackRate = lerp(playbackRate, desiredPlaybackRate, 0.4)
     } else {
+      if (debug) {
+        clearImpulseVisualisation('forwardImpulse')
+        clearImpulseVisualisation('steeringTorque')
+        clearImpulseVisualisation('sideImpulse')
+        clearImpulseVisualisation('summedSideForwardImpulse')
+      }
       // if we're not touching the ground, the playback rate is adhering to the forward input
       const desiredPlaybackRate = mapLinear(
         soundPlaybackMap(Math.max($axis.y, 0)),
@@ -840,6 +908,12 @@
     wheelStates = wheelStates
     carState = carState
     impulseVisualisations = impulseVisualisations
+
+    if (!debug && impulseVisualisations.length) {
+      impulseVisualisations.length = 0
+    } else if (debug) {
+      impulseVisualisations = impulseVisualisations
+    }
   })
 </script>
 
@@ -996,33 +1070,35 @@
         carBodyRadius
       ]}
     >
-      <slot
-        name="body"
-        {carState}
-      />
+      {#if !debug}
+        <slot
+          name="body"
+          {carState}
+        />
 
-      <!-- WHEEL SLOTS -->
-      <T.Group bind:ref={wheelStates.FL.wheelGroup}>
-        <slot name="wheel-fl" />
-      </T.Group>
-      <T.Group
-        bind:ref={wheelStates.FR.wheelGroup}
-        rotation.y={(180 * Math.PI) / 180}
-      >
-        <slot name="wheel-fr" />
-      </T.Group>
-      <T.Group
-        bind:ref={wheelStates.RL.wheelGroup}
-        rotation.y={$steeringAngle}
-      >
-        <slot name="wheel-rl" />
-      </T.Group>
-      <T.Group
-        bind:ref={wheelStates.RR.wheelGroup}
-        rotation.y={$steeringAngle + (180 * Math.PI) / 180}
-      >
-        <slot name="wheel-rr" />
-      </T.Group>
+        <!-- WHEEL SLOTS -->
+        <T.Group bind:ref={flWheelState.wheelGroup}>
+          <slot name="wheel-fl" />
+        </T.Group>
+        <T.Group
+          bind:ref={frWheelState.wheelGroup}
+          rotation.y={(180 * Math.PI) / 180}
+        >
+          <slot name="wheel-fr" />
+        </T.Group>
+        <T.Group
+          bind:ref={rlWheelState.wheelGroup}
+          rotation.y={$steeringAngle}
+        >
+          <slot name="wheel-rl" />
+        </T.Group>
+        <T.Group
+          bind:ref={rrWheelState.wheelGroup}
+          rotation.y={$steeringAngle + (180 * Math.PI) / 180}
+        >
+          <slot name="wheel-rr" />
+        </T.Group>
+      {/if}
     </Collider>
   </RigidBody>
 
