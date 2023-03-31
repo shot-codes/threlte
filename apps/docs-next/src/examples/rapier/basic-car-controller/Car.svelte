@@ -584,8 +584,6 @@
         }
 
         wheelState.suspensionLength = hit.toi
-
-        // update wheel group position
       } else {
         wheelState.onGround = false
         if (debug) {
@@ -788,7 +786,7 @@
           color: 'orange',
           impulse: sideImpulse,
           origin: forwardImpulseOrigin,
-          multiplier: 1 / carWeight
+          multiplier: 1 / (carWeight * 4)
         })
       }
 
