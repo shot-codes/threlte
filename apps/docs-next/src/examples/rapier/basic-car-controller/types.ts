@@ -9,22 +9,4 @@ export type CarState = {
    * in radians
    */
   steeringAngle: number
-  // FORWARD IMPULSE
-  forwardImpulse: {
-    origin: { x: number; y: number; z: number }
-    direction: { x: number; y: number; z: number }
-    length: number
-  }
-  // STEERING TORQUE
-  steeringTorque: {
-    origin: { x: number; y: number; z: number }
-    direction: { x: number; y: number; z: number }
-    length: number
-  }
-  // SIDE IMPULSE
-  sideImpulse: {
-    origin: { x: number; y: number; z: number }
-    direction: { x: number; y: number; z: number }
-    length: number
-  }
 }

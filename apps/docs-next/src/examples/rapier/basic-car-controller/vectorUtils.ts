@@ -20,3 +20,11 @@ export const fromAToB = (a: Vector, b: Vector): Vector => {
     z: b.z - a.z
   }
 }
+
+export const add = (a: Vector, b: Vector): Vector => {
+  return {
+    x: a.x + b.x,
+    y: a.y + b.y,
+    z: a.z + b.z
+  }
+}

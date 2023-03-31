@@ -12,15 +12,16 @@
     Vector as RapierVector
   } from '@dimforge/rapier3d-compat'
   import { T, useFrame } from '@threlte/core'
-  import { Audio, Text } from '@threlte/extras'
+  import { Audio } from '@threlte/extras'
   import { Collider, computeBitMask, RigidBody, useRapier } from '@threlte/rapier'
+  import { Editable, Project, Sheet } from '@threlte/theatre'
   import { mapRange } from '@tweakpane/core'
   import { spring } from 'svelte/motion'
-  import { Euler, Group, Object3D, Quaternion, Vector3 } from 'three'
+  import { Group, Quaternion, Vector3 } from 'three'
   import { clamp, lerp, mapLinear } from 'three/src/math/MathUtils'
   import type { CarState } from './types'
   import { useArrowKeys } from './useArrowKeys'
-  import { fromAToB, length, normalize } from './vectorUtils'
+  import { add, fromAToB, length, normalize } from './vectorUtils'
 
   const { world, paused } = useRapier()
 
@@ -30,6 +31,10 @@
   let group: Group
   let dummyGroup: Group
   let innerGroup: Group
+
+  let usingHandbrake = false
+
+  let isSliding = false
 
   const steeringAngle = spring(0)
 
@@ -75,15 +80,15 @@
    */
   const maxSteeringAngle = 35
 
-  const carWeight = 1500
+  let carWeight = 1500
   /**
    * In units/s
    */
-  const maxDesiredVelocity = 75
+  let maxDesiredVelocity = 93
 
   // const suspensionMountHeightRelativeToCarFloor = 0
-  const suspensionStiffness = 0.5
-  const suspensionDamping = 0.03
+  let suspensionStiffness = 0.5
+  let suspensionDamping = 0.03
 
   // ~ VW Passat dimensions
   const carBodyHeight = 1.12
@@ -95,17 +100,19 @@
   const wheelRadius = 0.306
 
   // racing cars have ~0.05m ground clearance
-  const maxGroundClearance = 0.25
+  let maxGroundClearance = 0.3
 
   // ~ VW Passat wheelbase
   const wheelBase = 2.56
 
-  const suspensionImpulseMultiplier = 1600
-  const forwardImpulseMultiplier = 800
+  let frictionCoefficient = 4.5
+
+  let suspensionImpulseMultiplier = 1100
+  let forwardImpulseMultiplier = 800
   const forwardImpulseMap = (_t: number) => 1
-  const backwardImpulseMultiplier = 400
+  let backwardImpulseMultiplier = 400
   const backwardImpulseMap = (_t: number) => 1
-  const brakeImpulseMultiplier = 1400
+  let brakeImpulseMultiplier = 1400
   const brakeImpulseMap = (_t: number) => 1
 
   /**
@@ -121,71 +128,29 @@
     return ((0.375 - 0.6875) / (1 - 0.875)) * (t - 0.875) + 0.6875
   }
 
-  const steeringTorqueMultiplier = 250
-  const sideImpulseMultiplier = 140
+  let steeringTorqueMultiplier = 230
 
   /**
    * Steering torque is only applied if the velocity is above this threshold.
    */
   const steeringVelocityThreshold = 0.3
 
+  /**
+   * The steering map maps the velocity of the car to the power of the torque applied to
+   * local y axis the car. The velocity goes from 0 (car is stopped) to 1 (car is at
+   * maxDesiredVelocity).
+   */
   // https://ease-everything.vercel.app/?path=%255B%2522Path%2522%252C%257B%2522applyMatrix%2522%253Atrue%252C%2522segments%2522%253A%255B%255B0%252C0%255D%252C%255B%255B50%252C400%255D%252C%255B-25%252C0%255D%252C%255B75%252C0%255D%255D%252C%255B200%252C300%255D%252C%255B400%252C100%255D%255D%252C%2522strokeColor%2522%253A%255B0.05882%252C0.38039%252C0.99608%255D%252C%2522strokeWidth%2522%253A2%257D%255D
   const steeringMap = (t: number) => {
-    const kSTS = 11
-    const kSSS = 1 / (kSTS - 1)
-    const map = (n: number, t: number, S: number, r: number, u: number) =>
-      ((n - t) * (u - r)) / (S - t) + r
-    const A = (n: number, t: number) => 1 - 3 * t + 3 * n
-    const B = (n: number, t: number) => 3 * t - 6 * n
-    const C = (n: number) => 3 * n
-    const cB = (n: number, t: number, S: number) => ((A(t, S) * n + B(t, S)) * n + C(t)) * n
-    const gS = (n: number, t: number, S: number) => 3 * A(t, S) * n * n + 2 * B(t, S) * n + C(t)
-    const bS = (n: number, t: number, S: number, r: number, u: number) => {
-      let c,
-        o,
-        e = 0
-      do {
-        ;(c = cB((o = t + (S - t) / 2), r, u) - n) > 0 ? (S = o) : (t = o)
-      } while (Math.abs(c) > 1e-7 && ++e < 10)
-      return o
-    }
-    const nRI = (n: number, t: number, S: number, r: number) => {
-      for (let u = 0; u < 4; ++u) {
-        const u = gS(t, S, r)
-        if (0 === u) return t
-        t -= (cB(t, S, r) - n) / u
-      }
-      return t
-    }
-    const b = (n: number, t: number, S: number, r: number) => {
-      if (!(0 <= n && n <= 1 && 0 <= S && S <= 1)) throw new Error('Error resolving bezier')
-      const u = new Float32Array(kSTS)
-      if (n !== t || S !== r) for (let t = 0; t < kSTS; ++t) u[t] = cB(t * kSSS, n, S)
-      return (c: number) =>
-        n === t && S === r
-          ? c
-          : 0 === c || 1 === c
-          ? c
-          : cB(
-              (function (t) {
-                let r = 0,
-                  c = 1
-                const o = kSTS - 1
-                for (; c !== o && u[c] <= t; ++c) r += kSSS
-                const e = r + ((t - u[--c]) / (u[c + 1] - u[c])) * kSSS,
-                  f = gS(e, n, S)
-                return f >= 0.001 ? nRI(t, e, n, S) : 0 === f ? e : bS(t, r, r + kSSS, n, S)
-              })(c),
-              t,
-              r
-            )
-    }
-
-    if (t < 0.125)
-      return map(b(0, 0, 0.5, 1)(((t - 0) * (1 - 0)) / (0.125 - 0) + 0 * 2), 0, 1, 0, 1)
-    if (t < 0.5)
-      return map(b(0.5, 0, 1, 1)(((t - 0.125) * (1 - 0)) / (0.5 - 0.125) + 0 * 2), 0, 1, 1, 0.75)
-    return ((0.25 - 0.75) / (1 - 0.5)) * (t - 0.5) + 0.75
+    // return 1
+    if (t < 0.08421052631578942)
+      return ((0.8719777960526315 - 0) / (0.08421052631578942 - 0)) * (t - 0) + 0
+    if (t < 0.1875)
+      return (
+        ((1 - 0.8719777960526315) / (0.1875 - 0.08421052631578942)) * (t - 0.08421052631578942) +
+        0.8719777960526315
+      )
+    return ((0.625 - 1) / (1 - 0.1875)) * (t - 0.1875) + 1
   }
 
   // https://ease-everything.vercel.app/?path=%255B%2522Path%2522%252C%257B%2522applyMatrix%2522%253Atrue%252C%2522segments%2522%253A%255B%255B0%252C350%255D%252C%255B150%252C400%255D%252C%255B400%252C125%255D%255D%252C%2522strokeColor%2522%253A%255B0.05882%252C0.38039%252C0.99608%255D%252C%2522strokeWidth%2522%253A2%257D%255D
@@ -194,16 +159,16 @@
     return ((0.3125 - 1) / (1 - 0.3125)) * (t - 0.3125) + 1
   }
 
-  const angularDamping = 4
+  let angularDamping = 2.8
   const angularDampingWhenBelowSteeringVelocityThreshold = 40
-  const angularDampingWhenInAir = 0.1
-  const angularDampingWhenBrakingInAir = 14
+  let angularDampingWhenInAir = 0.1
+  let angularDampingWhenBrakingInAir = 14
 
-  const linearDamping = 0.3
-  const linearDampingWhenInAir = 0.1
-  const linearDampingWhenBrakingInAir = 0.5
+  let linearDamping = 0.3
+  let linearDampingWhenInAir = 0.1
+  let linearDampingWhenBrakingInAir = 0.5
 
-  const virtualCenterOfMass = new Vector3(0.15, -0.25, 0)
+  let virtualCenterOfMass = new Vector3(0.02, -0.1, 0)
 
   // https://ease-everything.vercel.app/?path=%255B%2522Path%2522%252C%257B%2522applyMatrix%2522%253Atrue%252C%2522segments%2522%253A%255B%255B0%252C0%255D%252C%255B25%252C200%255D%252C%255B100%252C400%255D%252C%255B100%252C225%255D%252C%255B200%252C400%255D%252C%255B200%252C275%255D%252C%255B300%252C400%255D%252C%255B300%252C300%255D%252C%255B400%252C400%255D%255D%252C%2522strokeColor%2522%253A%255B0.05882%252C0.38039%252C0.99608%255D%252C%2522strokeWidth%2522%253A2%257D%255D
   const soundPlaybackMap = (t: number) => {
@@ -217,14 +182,14 @@
     return ((1 - 0.75) / (1 - 0.75)) * (t - 0.75) + 0.75
   }
   const minPlaybackRate = 1
-  const maxPlaybackRate = 3.5
-  const idleVolume = 0.6
-  const loadVolume = 1.0
+  let maxPlaybackRate = 3.5
+  let idleVolume = 0.6
+  let loadVolume = 1.0
   /**
    * Defines, how much the engine noise is reduced in volume when the
    * playbackRate is at minPlaybackRate comapred to maxPlaybackRate.
    */
-  const volumePlaybackRateMultiplier = 0.4
+  let volumePlaybackRateMultiplier = 0.4
   /**
    * -------------------------------------------------------
    * CAR CONFIGURATION END
@@ -237,9 +202,9 @@
    * -------------------------------------------------------
    */
 
-  const desiredCameraDistance = 8
-  const desiredCameraHeight = 3
-  const cameraDistanceToWalls = 0.5
+  let desiredCameraDistance = 7.2
+  let desiredCameraHeight = 2.7
+  let cameraDistanceToWalls = 0.5
 
   /**
    * -------------------------------------------------------
@@ -319,21 +284,6 @@
     isBraking: false,
     worldPosition: new Vector3(),
     steeringAngle: 0,
-    forwardImpulse: {
-      direction: { x: 0, y: 0, z: 0 },
-      origin: { x: 0, y: 0, z: 0 },
-      length: 0
-    },
-    steeringTorque: {
-      direction: { x: 0, y: 0, z: 0 },
-      origin: { x: 0, y: 0, z: 0 },
-      length: 0
-    },
-    sideImpulse: {
-      direction: { x: 0, y: 0, z: 0 },
-      origin: { x: 0, y: 0, z: 0 },
-      length: 0
-    },
     velocity: 0
   }
 
@@ -347,15 +297,7 @@
    */
   const tempVectorA = new Vector3()
   const tempVectorB = new Vector3()
-  const tempVectorC = new Vector3()
-
-  const tempEulerA = new Euler()
-  const tempEulerB = new Euler()
-  const tempEulerC = new Euler()
-
   const tempQuaternionA = new Quaternion()
-  const tempQuaternionB = new Quaternion()
-  const tempQuaternionC = new Quaternion()
   /**
    * -------------------------------------------------------
    * TEMP VARIABLES END
@@ -417,37 +359,6 @@
       y: tempVectorB.y,
       z: tempVectorB.z
     }
-  }
-
-  const lengthOfRapierVector = (v: RapierVector) => {
-    return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
-  }
-
-  /**
-   * Returns the angle of a quaternion on a given axis.
-   */
-  const trueAxisAngle = (axis: 'z' | 'y' | 'x', quaternion: Quaternion) => {
-    let direction = new Vector3(0, 0, 1)
-    let origin = new Vector3(0, 0, 1)
-    if (axis == 'z') {
-      direction.set(1, 0, 0)
-      origin.set(1, 0, 0)
-    }
-    direction.applyQuaternion(quaternion)
-
-    direction.x = axis == 'x' ? 0 : direction.x
-    direction.y = axis == 'y' ? 0 : direction.y
-    direction.z = axis == 'z' ? 0 : direction.z
-
-    direction.normalize()
-
-    let angle = origin.angleTo(direction)
-
-    if (axis == 'x' && direction.y > 0) angle = (360 * Math.PI) / 180 - angle
-    if (axis == 'y' && direction.x < 0) angle = (360 * Math.PI) / 180 - angle
-    if (axis == 'z' && direction.y < 0) angle = (360 * Math.PI) / 180 - angle
-
-    return angle
   }
 
   const setFromRapierVector = (vector: RapierVector, threeVector: Vector3) => {
@@ -536,6 +447,8 @@
     tempVectorA.applyQuaternion(tempQuaternionA)
     const worldRayDirection = threeVectorToRapierVector(tempVectorA)
 
+    let suspensionForceSum = 0
+
     Object.values(wheelStates).forEach((wheelState) => {
       const ray = new Ray(
         getWorldRayOriginForWheel(wheelState.type, currentWorldPosition, currentWorldRotation),
@@ -577,6 +490,8 @@
           .multiplyScalar(suspensionForce)
           .multiplyScalar(suspensionImpulseMultiplier)
 
+        suspensionForceSum += tempVectorB.length()
+
         rigidBody.applyImpulseAtPoint(
           { x: tempVectorB.x, y: tempVectorB.y, z: tempVectorB.z },
           ray.pointAt(hit.toi),
@@ -614,9 +529,13 @@
        * -----------------------------------------
        * FORWARD IMPULSE
        * -----------------------------------------
+       *
+       * The "ideal" forward impulse is calculated but later applied as part
+       * of the sum of forward and side impulse.
+       * https://digitalrune.github.io/DigitalRune-Documentation/html/143af493-329d-408f-975d-e63625646f2f.htm
        */
-      // use the direction of currentRotation to apply force
 
+      // use the direction of currentRotation to apply force
       const groundedWheels = Object.values(wheelStates).filter((wheelState) => wheelState.onGround)
       // calculate average surface normal
       const averageImpactSurfaceNormal = groundedWheels
@@ -666,7 +585,6 @@
           )
           .projectOnPlane(averageImpactSurfaceNormal)
       )
-      // const y = averageImpactSurfaceNormal.clone().normalize().y
 
       // the inclination is:
       // 0 when the car on a vertical surface going down
@@ -679,7 +597,7 @@
         0,
         1
       )
-      const finalImpulse = threeVectorToRapierVector(
+      const finalForwardImpulse = threeVectorToRapierVector(
         setFromRapierVector(forwardImpulse, tempVectorA).multiplyScalar(
           forwardImpulseInclinationMap(inclination)
         )
@@ -690,10 +608,6 @@
         currentWorldRotation,
         virtualCenterOfMass
       )
-      rigidBody.applyImpulseAtPoint(finalImpulse, forwardImpulseOrigin, true)
-      carState.forwardImpulse.direction = normalize(finalImpulse)
-      carState.forwardImpulse.origin = forwardImpulseOrigin
-      carState.forwardImpulse.length = lengthOfRapierVector(finalImpulse)
 
       /**
        * -----------------------------------------
@@ -716,9 +630,6 @@
           .normalize()
           .multiplyScalar(steeringTorque)
         rigidBody.applyTorqueImpulse(steeringTorqueImpulse, true)
-        carState.steeringTorque.direction = normalize(steeringTorqueImpulse)
-        carState.steeringTorque.origin = currentWorldPosition
-        carState.steeringTorque.length = lengthOfRapierVector(steeringTorqueImpulse)
       } else {
         // if we're not moving, reset the angular velocity
         finalAngularDamping = angularDampingWhenBelowSteeringVelocityThreshold
@@ -728,10 +639,13 @@
        * -----------------------------------------
        * SIDE IMPULSE
        * -----------------------------------------
+       *
+       * The "ideal" side impulse is calculated but later applied as part
+       * of the sum of forward and side impulse.
+       * https://digitalrune.github.io/DigitalRune-Documentation/html/143af493-329d-408f-975d-e63625646f2f.htm
        */
-      // get side component of local frame velocity
-      const currentVelocity = rigidBody.linvel()
-      tempVectorA.set(currentVelocity.x, currentVelocity.y, currentVelocity.z)
+
+      tempVectorA.set(linearVelocity.x, linearVelocity.y, linearVelocity.z)
 
       tempQuaternionA.set(
         currentWorldRotation.x,
@@ -748,23 +662,44 @@
       const sideImpulseVector = tempVectorB
         .set(0, 0, 1)
         .applyQuaternion(tempQuaternionA)
-        .multiplyScalar(currentVelocityDot * correctedDelta * sideImpulseMultiplier)
+        .multiplyScalar(currentVelocityDot * carWeight)
 
       const sideImpulse = {
         x: sideImpulseVector.x,
         y: 0,
         z: sideImpulseVector.z
       }
-      const sideImpulseOrigin = localPositionToWorld(
-        currentWorldPosition,
-        currentWorldRotation,
-        virtualCenterOfMass
-      )
 
-      rigidBody.applyImpulseAtPoint(sideImpulse, sideImpulseOrigin, true)
-      carState.sideImpulse.direction = normalize(sideImpulse)
-      carState.sideImpulse.origin = sideImpulseOrigin
-      carState.sideImpulse.length = lengthOfRapierVector(sideImpulse)
+      /**
+       * -----------------------------------------
+       * SUMMED IMPULSE
+       * -----------------------------------------
+       *
+       * Only now we apply the summed impulse, which is the sum of the
+       * forward and side impulse.
+       * https://digitalrune.github.io/DigitalRune-Documentation/html/143af493-329d-408f-975d-e63625646f2f.htm
+       */
+
+      const maxFrictionForce = frictionCoefficient * suspensionForceSum
+
+      const forwardSideSum = add(finalForwardImpulse, sideImpulse)
+      const forwardSideSumLength = length(forwardSideSum)
+      ;(window as any).suspensionForceSum = suspensionForceSum
+      ;(window as any).maxFrictionForce = maxFrictionForce
+      ;(window as any).forwardSideSumLength = forwardSideSumLength
+      ;(window as any).clamped = forwardSideSumLength > maxFrictionForce
+      if (forwardSideSumLength > maxFrictionForce) {
+        isSliding = true
+        const ratio = maxFrictionForce / forwardSideSumLength
+        forwardSideSum.x *= ratio
+        forwardSideSum.y *= ratio
+        forwardSideSum.z *= ratio
+      } else {
+        isSliding = false
+      }
+
+      // apply summed	forward and side impulse
+      rigidBody.applyImpulseAtPoint(forwardSideSum, forwardImpulseOrigin, true)
 
       // we're on the ground, so set the linear damping to the default
       finalLinearDamping = linearDamping
@@ -836,25 +771,19 @@
     wheelStates = wheelStates
     carState = carState
   })
-
-  // const audioLoader = useLoader(AudioLoader)
-  // const audioBuffer = audioLoader.load('/assets/basic-vehicle-controller/engine5.wav')
-  // const audioCtx = new AudioContext()
-  // const source = audioCtx.createBufferSource()
-  // source.connect(audioCtx.destination)
-
-  // $: if ($audioBuffer && !$paused) {
-  //   source.buffer = $audioBuffer
-  //   ;(window as any).source = source
-  //   source.loop = true
-  //   source.start(0)
-  // } else if ($paused) {
-  //   source.stop()
-  // }
-  ;(window as any).someValue = 5
 </script>
 
 <svelte:window
+  on:keydown={(e) => {
+    if (e.key === ' ') {
+      usingHandbrake = true
+    }
+  }}
+  on:keyup={(e) => {
+    if (e.key === ' ') {
+      usingHandbrake = false
+    }
+  }}
   on:keypress={(e) => {
     const { key } = e
     if (key === 'Enter' && !$paused) {
@@ -862,6 +791,103 @@
     }
   }}
 />
+
+<Project name="MuscleCar">
+  <Sheet>
+    <Editable
+      name="MuscleCar"
+      props={{
+        carWeight,
+        maxDesiredVelocity,
+        suspensionStiffness,
+        suspensionDamping,
+        maxGroundClearance,
+        suspensionImpulseMultiplier,
+        forwardImpulseMultiplier,
+        backwardImpulseMultiplier,
+        brakeImpulseMultiplier,
+        steeringTorqueMultiplier,
+        angularDamping,
+        angularDampingWhenInAir,
+        angularDampingWhenBrakingInAir,
+        linearDamping,
+        linearDampingWhenInAir,
+        linearDampingWhenBrakingInAir,
+        virtualCenterOfMass: {
+          x: virtualCenterOfMass.x,
+          y: virtualCenterOfMass.y,
+          z: virtualCenterOfMass.z
+        },
+        maxPlaybackRate,
+        idleVolume,
+        loadVolume,
+        volumePlaybackRateMultiplier,
+        desiredCameraDistance,
+        desiredCameraHeight,
+        cameraDistanceToWalls,
+        frictionCoefficient
+      }}
+      on:change={(values) => {
+        carWeight = values.carWeight
+        maxDesiredVelocity = values.maxDesiredVelocity
+        suspensionStiffness = values.suspensionStiffness
+        suspensionDamping = values.suspensionDamping
+        maxGroundClearance = values.maxGroundClearance
+        suspensionImpulseMultiplier = values.suspensionImpulseMultiplier
+        forwardImpulseMultiplier = values.forwardImpulseMultiplier
+        backwardImpulseMultiplier = values.backwardImpulseMultiplier
+        brakeImpulseMultiplier = values.brakeImpulseMultiplier
+        steeringTorqueMultiplier = values.steeringTorqueMultiplier
+        angularDamping = values.angularDamping
+        angularDampingWhenInAir = values.angularDampingWhenInAir
+        angularDampingWhenBrakingInAir = values.angularDampingWhenBrakingInAir
+        linearDamping = values.linearDamping
+        linearDampingWhenInAir = values.linearDampingWhenInAir
+        linearDampingWhenBrakingInAir = values.linearDampingWhenBrakingInAir
+        virtualCenterOfMass.x = values.virtualCenterOfMass.x
+        virtualCenterOfMass.y = values.virtualCenterOfMass.y
+        virtualCenterOfMass.z = values.virtualCenterOfMass.z
+        maxPlaybackRate = values.maxPlaybackRate
+        idleVolume = values.idleVolume
+        loadVolume = values.loadVolume
+        volumePlaybackRateMultiplier = values.volumePlaybackRateMultiplier
+        desiredCameraDistance = values.desiredCameraDistance
+        desiredCameraHeight = values.desiredCameraHeight
+        cameraDistanceToWalls = values.cameraDistanceToWalls
+        frictionCoefficient = values.frictionCoefficient
+      }}
+      on:create={(values) => {
+        carWeight = values.carWeight
+        maxDesiredVelocity = values.maxDesiredVelocity
+        suspensionStiffness = values.suspensionStiffness
+        suspensionDamping = values.suspensionDamping
+        maxGroundClearance = values.maxGroundClearance
+        suspensionImpulseMultiplier = values.suspensionImpulseMultiplier
+        forwardImpulseMultiplier = values.forwardImpulseMultiplier
+        backwardImpulseMultiplier = values.backwardImpulseMultiplier
+        brakeImpulseMultiplier = values.brakeImpulseMultiplier
+        steeringTorqueMultiplier = values.steeringTorqueMultiplier
+        angularDamping = values.angularDamping
+        angularDampingWhenInAir = values.angularDampingWhenInAir
+        angularDampingWhenBrakingInAir = values.angularDampingWhenBrakingInAir
+        linearDamping = values.linearDamping
+        linearDampingWhenInAir = values.linearDampingWhenInAir
+        linearDampingWhenBrakingInAir = values.linearDampingWhenBrakingInAir
+        virtualCenterOfMass.x = values.virtualCenterOfMass.x
+        virtualCenterOfMass.y = values.virtualCenterOfMass.y
+        virtualCenterOfMass.z = values.virtualCenterOfMass.z
+        maxPlaybackRate = values.maxPlaybackRate
+        idleVolume = values.idleVolume
+        loadVolume = values.loadVolume
+        volumePlaybackRateMultiplier = values.volumePlaybackRateMultiplier
+        desiredCameraDistance = values.desiredCameraDistance
+        desiredCameraHeight = values.desiredCameraHeight
+        cameraDistanceToWalls = values.cameraDistanceToWalls
+        frictionCoefficient = values.frictionCoefficient
+      }}
+    />
+  </Sheet>
+</Project>
 
 {#if !$paused}
   <Audio
@@ -892,46 +918,10 @@
         carBodyRadius
       ]}
     >
-      {#if !debug}
-        <slot
-          name="body"
-          {carState}
-        />
-      {/if}
-
-      {#if debug}
-        <!-- Helper Arrows showing suspension rays -->
-        {#each Object.values(wheelStates) as wheelState}
-          {@const rayOrigin = getLocalRayOriginForWheel(wheelState.type)}
-          {@const origin = new Vector3(rayOrigin.x, rayOrigin.y, rayOrigin.z)}
-          {@const direction = new Vector3(0, -1, 0)}
-          <T.ArrowHelper
-            args={[direction, origin, wheelState.suspensionLength, 0xff0000, 0.05, 0.05]}
-          />
-          <Text
-            rotation.y={(90 * Math.PI) / 180}
-            position.x={wheelState.type === Wheel.FL || wheelState.type === Wheel.FR
-              ? wheelBase / 2
-              : -wheelBase / 2}
-            position.z={wheelState.type === Wheel.FR || wheelState.type === Wheel.RR
-              ? -carBodyWidth / 2
-              : carBodyWidth / 2}
-            position.y={0.2}
-            fontSize={0.3}
-            anchorX="50%"
-            anchorY="50%"
-            text={wheelState.suspensionLength.toFixed(2)}
-          />
-        {/each}
-
-        <Text
-          rotation.y={(90 * Math.PI) / 180}
-          fontSize={0.3}
-          anchorX="50%"
-          anchorY="50%"
-          text={carState.velocity.toFixed(2)}
-        />
-      {/if}
+      <slot
+        name="body"
+        {carState}
+      />
 
       <!-- WHEEL SLOTS -->
       <T.Group bind:ref={wheelStates.FL.wheelGroup}>
@@ -975,36 +965,3 @@
     </T.Group>
   </T.Group>
 </T.Group>
-
-{#if debug && Object.values(wheelStates).some((wheelState) => wheelState.onGround)}
-  <T.ArrowHelper
-    args={[
-      carState.forwardImpulse.direction,
-      carState.forwardImpulse.origin,
-      carState.forwardImpulse.length / forwardImpulseMultiplier,
-      0xff0000,
-      0.05,
-      0.05
-    ]}
-  />
-  <T.ArrowHelper
-    args={[
-      carState.steeringTorque.direction,
-      carState.steeringTorque.origin,
-      carState.steeringTorque.length / steeringTorqueMultiplier,
-      0x00ff00,
-      0.05,
-      0.05
-    ]}
-  />
-  <T.ArrowHelper
-    args={[
-      carState.sideImpulse.direction,
-      carState.sideImpulse.origin,
-      carState.sideImpulse.length / sideImpulseMultiplier,
-      0x0000ff,
-      0.05,
-      0.05
-    ]}
-  />
-{/if}
