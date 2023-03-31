@@ -2,25 +2,26 @@
   import { T, useFrame, useRender, useThrelte } from '@threlte/core'
   import { AudioListener, Environment, interactivity, OrbitControls, Portal } from '@threlte/extras'
   import { useRapier } from '@threlte/rapier'
+  import { useTheatre } from '@threlte/theatre'
+  import Stats from 'stats.js'
   import { DEG2RAD } from 'three/src/math/MathUtils'
   import Car from './Car.svelte'
-  import Level from './Level/Level.svelte'
+  import Game from './Game.svelte'
   import MuscleCar from './MuscleCar.svelte'
   import MuscleCarWheel from './MuscleCarWheel.svelte'
   import type { CarState } from './types'
-  import Stats from 'stats.js'
-  import Game from './Game.svelte'
 
   let carState: CarState
 
   const { scene } = useThrelte()
-
   const { pause, resume } = useRapier()
+  const { studio } = useTheatre()
 
   let isPaused = false
   $: isPaused ? pause() : resume()
 
-  let edit = true
+  let edit = false
+  $: edit ? $studio?.ui.restore() : $studio?.ui.hide()
 
   interactivity()
 
