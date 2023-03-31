@@ -479,8 +479,8 @@
          * -----------------------------------------
          */
         const suspensionForce =
-          suspensionStiffness * (maxGroundClearance - hit.toi) +
-          (suspensionDamping * (wheelState.suspensionLength - hit.toi)) / delta
+          (suspensionStiffness * (maxGroundClearance - hit.toi) +
+          (suspensionDamping * (wheelState.suspensionLength - hit.toi)) / delta) * correctedDelta
 
         setFromRapierVector(ray.pointAt(1), tempVectorA)
         setFromRapierVector(ray.origin, tempVectorB)
@@ -813,11 +813,9 @@
         linearDamping,
         linearDampingWhenInAir,
         linearDampingWhenBrakingInAir,
-        virtualCenterOfMass: {
-          x: virtualCenterOfMass.x,
-          y: virtualCenterOfMass.y,
-          z: virtualCenterOfMass.z
-        },
+        COMx: virtualCenterOfMass.x,
+        COMy: virtualCenterOfMass.y,
+        COMz: virtualCenterOfMass.z,
         maxPlaybackRate,
         idleVolume,
         loadVolume,
@@ -844,9 +842,9 @@
         linearDamping = values.linearDamping
         linearDampingWhenInAir = values.linearDampingWhenInAir
         linearDampingWhenBrakingInAir = values.linearDampingWhenBrakingInAir
-        virtualCenterOfMass.x = values.virtualCenterOfMass.x
-        virtualCenterOfMass.y = values.virtualCenterOfMass.y
-        virtualCenterOfMass.z = values.virtualCenterOfMass.z
+        virtualCenterOfMass.x = values.COMx
+        virtualCenterOfMass.y = values.COMy
+        virtualCenterOfMass.z = values.COMz
         maxPlaybackRate = values.maxPlaybackRate
         idleVolume = values.idleVolume
         loadVolume = values.loadVolume
@@ -873,9 +871,9 @@
         linearDamping = values.linearDamping
         linearDampingWhenInAir = values.linearDampingWhenInAir
         linearDampingWhenBrakingInAir = values.linearDampingWhenBrakingInAir
-        virtualCenterOfMass.x = values.virtualCenterOfMass.x
-        virtualCenterOfMass.y = values.virtualCenterOfMass.y
-        virtualCenterOfMass.z = values.virtualCenterOfMass.z
+        virtualCenterOfMass.x = values.COMx
+        virtualCenterOfMass.y = values.COMy
+        virtualCenterOfMass.z = values.COMz
         maxPlaybackRate = values.maxPlaybackRate
         idleVolume = values.idleVolume
         loadVolume = values.loadVolume

@@ -1,7 +1,7 @@
 <script lang="ts">
   import Level from './Level/Level.svelte'
 
-  let levelId = 'one'
+  let levelId = 'two'
 </script>
 
 <Level {levelId} />
