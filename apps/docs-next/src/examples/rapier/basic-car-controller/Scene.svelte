@@ -4,6 +4,7 @@
   import { useRapier } from '@threlte/rapier'
   import { useTheatre } from '@threlte/theatre'
   import Stats from 'stats.js'
+  import { tick } from 'svelte'
   import { DEG2RAD } from 'three/src/math/MathUtils'
   import Car from './Car.svelte'
   import Game from './Game.svelte'
@@ -40,7 +41,8 @@
     }
   )
 
-  useRender((ctx) => {
+  useRender(async (ctx) => {
+    await tick()
     ctx.renderer?.render(ctx.scene, ctx.camera.current)
     stats.end()
   })

@@ -19,6 +19,7 @@
   import { spring } from 'svelte/motion'
   import { Group, Quaternion, Vector3 } from 'three'
   import { clamp, lerp, mapLinear } from 'three/src/math/MathUtils'
+  import Impulse from './Impulse.svelte'
   import type { CarState } from './types'
   import { useArrowKeys } from './useArrowKeys'
   import { add, fromAToB, length, normalize } from './vectorUtils'
@@ -37,6 +38,74 @@
   let isSliding = false
 
   const steeringAngle = spring(0)
+
+  type ImpulseVisualisation = {
+    id: string
+    origin: {
+      x: number
+      y: number
+      z: number
+    }
+    impulse: {
+      x: number
+      y: number
+      z: number
+    }
+    length: number | undefined
+    color: string | undefined
+    multiplier: number | undefined
+  }
+
+  let impulseVisualisations: ImpulseVisualisation[] = []
+
+  const updateImpulseVisualisation = (
+    id: string,
+    values: {
+      origin?: RapierVector
+      impulse?: RapierVector
+      length?: number
+      color?: string
+      multiplier?: number
+    }
+  ) => {
+    const impulseVisualisation = impulseVisualisations.find(
+      (impulseVisualisation) => impulseVisualisation.id === id
+    )
+    if (!impulseVisualisation) {
+      impulseVisualisations.push({
+        id,
+        origin: {
+          x: values.origin?.x ?? 0,
+          y: values.origin?.y ?? 0,
+          z: values.origin?.z ?? 0
+        },
+        impulse: {
+          x: values.impulse?.x ?? 0,
+          y: values.impulse?.y ?? 0,
+          z: values.impulse?.z ?? 0
+        },
+        length: values.length ?? undefined,
+        color: values.color ?? undefined,
+        multiplier: values.multiplier ?? undefined
+      })
+    } else {
+      if (values.origin) {
+        impulseVisualisation.origin.x = values.origin.x
+        impulseVisualisation.origin.y = values.origin.y
+        impulseVisualisation.origin.z = values.origin.z
+      }
+
+      if (values.impulse) {
+        impulseVisualisation.impulse.x = values.impulse.x
+        impulseVisualisation.impulse.y = values.impulse.y
+        impulseVisualisation.impulse.z = values.impulse.z
+      }
+
+      if (values.length) impulseVisualisation.length = values.length
+      if (values.color) impulseVisualisation.color = values.color
+      if (values.multiplier) impulseVisualisation.multiplier = values.multiplier
+    }
+  }
 
   const axis = useArrowKeys()
 
@@ -240,8 +309,8 @@
 
   const defaultRay = new Ray({ x: 0, y: 0, z: 0 }, { x: 0, y: -1, z: 0 })
 
-  let wheelStates: Record<Wheel, WheelState> = {
-    FL: {
+  let wheelStates: WheelState[] = [
+    {
       type: Wheel.FL,
       onGround: false,
       suspensionLength: maxGroundClearance,
@@ -250,7 +319,7 @@
       surfaceImpactPoint: { x: 0, y: 0, z: 0 },
       wheelGroup: undefined as any as Group
     },
-    FR: {
+    {
       type: Wheel.FR,
       onGround: false,
       suspensionLength: maxGroundClearance,
@@ -259,7 +328,7 @@
       surfaceImpactPoint: { x: 0, y: 0, z: 0 },
       wheelGroup: undefined as any as Group
     },
-    RL: {
+    {
       type: Wheel.RL,
       onGround: false,
       suspensionLength: maxGroundClearance,
@@ -268,7 +337,7 @@
       surfaceImpactPoint: { x: 0, y: 0, z: 0 },
       wheelGroup: undefined as any as Group
     },
-    RR: {
+    {
       type: Wheel.RR,
       onGround: false,
       suspensionLength: maxGroundClearance,
@@ -277,7 +346,7 @@
       surfaceImpactPoint: { x: 0, y: 0, z: 0 },
       wheelGroup: undefined as any as Group
     }
-  }
+  ]
 
   export let carState: CarState = {
     isForward: false,
@@ -449,7 +518,7 @@
 
     let suspensionForceSum = 0
 
-    Object.values(wheelStates).forEach((wheelState) => {
+    wheelStates.forEach((wheelState) => {
       const ray = new Ray(
         getWorldRayOriginForWheel(wheelState.type, currentWorldPosition, currentWorldRotation),
         worldRayDirection
@@ -479,8 +548,8 @@
          * -----------------------------------------
          */
         const suspensionForce =
-          (suspensionStiffness * (maxGroundClearance - hit.toi) +
-          (suspensionDamping * (wheelState.suspensionLength - hit.toi)) / delta) * correctedDelta
+          suspensionStiffness * (maxGroundClearance - hit.toi) +
+          (suspensionDamping * (wheelState.suspensionLength - hit.toi)) / delta
 
         setFromRapierVector(ray.pointAt(1), tempVectorA)
         setFromRapierVector(ray.origin, tempVectorB)
@@ -524,7 +593,7 @@
      * forward impulse, side impulse and steering torque is only applied when
      * the car is touching the ground!
      */
-    if (Object.values(wheelStates).some((wheelState) => wheelState.onGround)) {
+    if (wheelStates.some((wheelState) => wheelState.onGround)) {
       /**
        * -----------------------------------------
        * FORWARD IMPULSE
@@ -536,7 +605,7 @@
        */
 
       // use the direction of currentRotation to apply force
-      const groundedWheels = Object.values(wheelStates).filter((wheelState) => wheelState.onGround)
+      const groundedWheels = wheelStates.filter((wheelState) => wheelState.onGround)
       // calculate average surface normal
       const averageImpactSurfaceNormal = groundedWheels
         .reduce((acc, wheelState) => {
@@ -770,6 +839,7 @@
     // tell svelte to update stuff
     wheelStates = wheelStates
     carState = carState
+    impulseVisualisations = impulseVisualisations
   })
 </script>
 
@@ -896,6 +966,16 @@
     {playbackRate}
   />
 {/if}
+
+{#each impulseVisualisations as impulseVisualisation (impulseVisualisation.id)}
+  <Impulse
+    origin={impulseVisualisation.origin}
+    impulse={impulseVisualisation.impulse}
+    length={impulseVisualisation.length}
+    color={impulseVisualisation.color}
+    multiplier={impulseVisualisation.multiplier}
+  />
+{/each}
 
 <T.Group>
   <RigidBody
