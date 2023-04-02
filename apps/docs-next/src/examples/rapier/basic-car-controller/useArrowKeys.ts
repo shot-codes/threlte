@@ -46,5 +46,8 @@ export const useArrowKeys = () => {
     window.removeEventListener('keyup', onKeyUp)
   })
 
-  return axis
+  return {
+    axis,
+    arrowKeys
+  }
 }

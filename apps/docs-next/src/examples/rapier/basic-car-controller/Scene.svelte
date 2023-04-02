@@ -10,20 +10,17 @@
   import Game from './Game.svelte'
   import MuscleCar from './MuscleCar.svelte'
   import MuscleCarWheel from './MuscleCarWheel.svelte'
-  import { debug } from './stores/app'
+  import { debug, paused } from './stores/app'
   import type { CarState } from './types'
 
   let carState: CarState
 
   const { scene } = useThrelte()
   const { pause, resume } = useRapier()
-  const { studio } = useTheatre()
 
-  let isPaused = false
-  $: isPaused ? pause() : resume()
+  $: $paused ? pause() : resume()
 
   let edit = false
-  $: edit ? $studio?.ui.restore() : $studio?.ui.hide()
 
   interactivity()
 
@@ -51,11 +48,10 @@
 
 <svelte:window
   on:keypress={(e) => {
-    if (e.key === 'e') {
-      edit = !edit
-    }
     if (e.key === 'p') {
-      isPaused = !isPaused
+      paused.update((value) => {
+        return !value
+      })
     }
   }}
 />

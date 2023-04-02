@@ -2,10 +2,10 @@
   import type { ISheetObject } from '@theatre/core'
   import { T } from '@threlte/core'
   import { useCursor } from '@threlte/extras'
-  import { useTheatre } from '@threlte/theatre'
+  import { useStudio } from '@threlte/theatre'
   import { onDestroy, onMount } from 'svelte'
 
-  const { studio } = useTheatre()
+  const studio = useStudio()
 
   export let object: ISheetObject
 

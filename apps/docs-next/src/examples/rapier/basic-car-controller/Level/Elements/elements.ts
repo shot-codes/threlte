@@ -1,8 +1,8 @@
 import type { ISheetObject } from '@theatre/core'
 import type { IExtension, IStudio, ToolsetConfig } from '@theatre/studio'
 import { currentWritable } from '@threlte/core'
-import { useTheatre } from '@threlte/theatre'
-import { onDestroy, setContext, tick } from 'svelte'
+import { useStudio } from '@threlte/theatre'
+import { onDestroy, setContext } from 'svelte'
 import { derived } from 'svelte/store'
 
 type ElementConfiguration = {
@@ -115,7 +115,7 @@ export const useLevel = (levelId: string) => {
 
   setContext<typeof levelSheetObjects>('level-sheet-objects', levelSheetObjects)
 
-  const { defaultProject, studio } = useTheatre()
+  const studio = useStudio()
 
   // provide the key to the currently selected element
   const selectedId = currentWritable<string | undefined>(undefined)

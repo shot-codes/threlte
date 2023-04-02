@@ -1,21 +1,25 @@
 <script lang="ts">
-  import { globalStudio } from '../consts'
+  import type { IStudio } from '@theatre/studio'
   import { onDestroy, onMount } from 'svelte'
-  import { useTheatre } from '../../hooks/useTheatre'
+  import { globalStudio } from '../consts'
+  import { useStudio } from './useStudio'
 
-  const { studio: useTheatreStudio } = useTheatre()
+  export let studio: IStudio | undefined = undefined
+
+  const studioCtx = useStudio()
 
   onMount(async () => {
     if ($globalStudio) {
       $globalStudio.ui.restore()
-      useTheatreStudio.set($globalStudio)
+      studioCtx.set($globalStudio)
       return
     }
     const pkg = await import('@theatre/studio')
     const Studio = pkg.default
     Studio.initialize()
     globalStudio.set(Studio)
-    useTheatreStudio.set(Studio)
+    studioCtx.set(Studio)
+    studio = Studio
   })
 
   onDestroy(() => {

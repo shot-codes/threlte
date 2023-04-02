@@ -1,8 +1,7 @@
 <script lang="ts">
   import { Canvas, T } from '@threlte/core'
-  import { Environment, Grid, useProgress, Audio, AudioListener } from '@threlte/extras'
+  import { Audio, AudioListener, Environment, useProgress } from '@threlte/extras'
   import { Debug, World } from '@threlte/rapier'
-  import { Theatre } from '@threlte/theatre'
   import BasicBox from './Level/Elements/BasicBox.svelte'
   import Checkpoint from './Level/Elements/Checkpoint.svelte'
   import CheckpointRing from './Level/Elements/CheckpointRing.svelte'
@@ -60,15 +59,15 @@
           <Audio src="/assets/basic-vehicle-controller/engine6.wav" />
         </T.Group>
       {:else}
-        <Theatre>
-          {#if $debug}
-            <Debug
-              depthTest={false}
-              depthWrite={false}
-            />
-          {/if}
-          <Scene />
-        </Theatre>
+        <!-- <Theatre> -->
+        {#if $debug}
+          <Debug
+            depthTest={false}
+            depthWrite={false}
+          />
+        {/if}
+        <Scene />
+        <!-- </Theatre> -->
       {/if}
     </World>
   </Canvas>

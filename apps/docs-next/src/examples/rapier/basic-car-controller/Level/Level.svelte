@@ -1,9 +1,10 @@
 <script lang="ts">
   import { T } from '@threlte/core'
-  import { Editable, Sheet } from '@threlte/theatre'
+  import { Editable, Project, Sheet, Studio } from '@threlte/theatre'
   import { useLevel } from './Elements/elements'
   import ElementSelector from './Elements/ElementSelector.svelte'
   import RegisterSheetObject from './Elements/RegisterSheetObject.svelte'
+  import type { IStudio } from '@theatre/studio'
 
   // Elements
   import BasicBox from './Elements/BasicBox.svelte'
@@ -17,6 +18,8 @@
   import Checkpoint from './Elements/Checkpoint.svelte'
 
   export let levelId: string
+  export let canEdit = false
+  let studio: IStudio | undefined = undefined
 
   const { registerElements, registerExtension, objects, selectedId } = useLevel(levelId)
 
@@ -87,36 +90,57 @@
       dispatch('levelfinished')
     }
   }
+
+  let edit = false
+  $: edit ? studio?.ui.restore() : studio?.ui.hide()
 </script>
+
+<svelte:window
+  on:keypress={(e) => {
+    if (e.key === 'e') {
+      edit = !edit
+    }
+  }}
+/>
 
 <BasicBox selected={false} />
 
-<!-- <Floor /> -->
-<Sheet name="one">
-  {#each $objects as [component, name, ids], index (name)}
-    {#each ids as id, index (`${name}-${id}`)}
-      <T.Group>
-        <Editable
-          controls
-          transform
-          name={`${name}-${id}`}
-          let:object
-        >
-          <RegisterSheetObject {object} />
-          <ElementSelector {object}>
-            <svelte:component
-              this={component}
-              selected={$selectedId === id}
+<!-- !!!!! TODO: STUDIO IS PLACED HERE AND THE CONTEXT IS NOT AVAILABLE
+	IN useLevel, ALSO THE DEFAULT PROJECT IS NOT AVAILABLE. -->
+
+<Studio
+  enabled={canEdit}
+  bind:studio
+>
+  <Project name="level">
+    <!-- <Floor /> -->
+    <Sheet name={levelId}>
+      {#each $objects as [component, name, ids], index (name)}
+        {#each ids as id, index (`${name}-${id}`)}
+          <T.Group>
+            <Editable
+              controls
+              transform
               name={`${name}-${id}`}
-              sheetObject={object}
-              on:checkpointreached={() => {
-                onCheckpointReached(id)
-              }}
-              on:finishreached={onFinishReached}
-            />
-          </ElementSelector>
-        </Editable>
-      </T.Group>
-    {/each}
-  {/each}
-</Sheet>
+              let:object
+            >
+              <RegisterSheetObject {object} />
+              <ElementSelector {object}>
+                <svelte:component
+                  this={component}
+                  selected={$selectedId === id}
+                  name={`${name}-${id}`}
+                  sheetObject={object}
+                  on:checkpointreached={() => {
+                    onCheckpointReached(id)
+                  }}
+                  on:finishreached={onFinishReached}
+                />
+              </ElementSelector>
+            </Editable>
+          </T.Group>
+        {/each}
+      {/each}
+    </Sheet>
+  </Project>
+</Studio>

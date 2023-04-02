@@ -14,7 +14,7 @@
   import { T, useFrame } from '@threlte/core'
   import { Audio } from '@threlte/extras'
   import { Collider, computeBitMask, RigidBody, useRapier } from '@threlte/rapier'
-  import { Editable, Project, Sheet } from '@threlte/theatre'
+  // import { Editable, Project, Sheet } from '@threlte/theatre'
   import { mapRange } from '@tweakpane/core'
   import { spring } from 'svelte/motion'
   import { Group, Quaternion, Vector3 } from 'three'
@@ -32,10 +32,6 @@
   let group: Group
   let dummyGroup: Group
   let innerGroup: Group
-
-  let usingHandbrake = false
-
-  let isSliding = false
 
   const steeringAngle = spring(0)
 
@@ -113,7 +109,7 @@
     )
   }
 
-  const axis = useArrowKeys()
+  const { axis } = useArrowKeys()
 
   enum Wheel {
     'FL' = 'FL',
@@ -550,8 +546,11 @@
         // wheel is touching the ground
         wheelState.onGround = true
 
-        wheelState.surfaceImpactPoint = ray.pointAt(hit.toi)
-        wheelState.surfaceImpactNormal = hit.normal
+        const surfaceImpactPoint = ray.pointAt(hit.toi)
+        const surfaceImpactNormal = hit.normal
+
+        wheelState.surfaceImpactPoint = surfaceImpactPoint
+        wheelState.surfaceImpactNormal = surfaceImpactNormal
 
         /**
          * -----------------------------------------
@@ -573,12 +572,12 @@
         suspensionForceSum += tempVectorB.length()
 
         const suspensionImpulse = { x: tempVectorB.x, y: tempVectorB.y, z: tempVectorB.z }
-        rigidBody.applyImpulseAtPoint(suspensionImpulse, ray.pointAt(hit.toi), true)
+        rigidBody.applyImpulseAtPoint(suspensionImpulse, surfaceImpactPoint, true)
         if (debug) {
           updateImpulseVisualisation(`${wheelState.type}-suspension`, {
             color: 'red',
             impulse: suspensionImpulse,
-            origin: ray.pointAt(hit.toi),
+            origin: surfaceImpactPoint,
             multiplier: 1 / suspensionImpulseMultiplier
           })
         }
@@ -801,18 +800,12 @@
 
       const forwardSideSum = add(finalForwardImpulse, sideImpulse)
       const forwardSideSumLength = length(forwardSideSum)
-      ;(window as any).suspensionForceSum = suspensionForceSum
-      ;(window as any).maxFrictionForce = maxFrictionForce
-      ;(window as any).forwardSideSumLength = forwardSideSumLength
-      ;(window as any).clamped = forwardSideSumLength > maxFrictionForce
       if (forwardSideSumLength > maxFrictionForce) {
-        isSliding = true
         const ratio = maxFrictionForce / forwardSideSumLength
         forwardSideSum.x *= ratio
         forwardSideSum.y *= ratio
         forwardSideSum.z *= ratio
       } else {
-        isSliding = false
       }
 
       // apply summed	forward and side impulse
@@ -913,16 +906,6 @@
 </script>
 
 <svelte:window
-  on:keydown={(e) => {
-    if (e.key === ' ') {
-      usingHandbrake = true
-    }
-  }}
-  on:keyup={(e) => {
-    if (e.key === ' ') {
-      usingHandbrake = false
-    }
-  }}
   on:keypress={(e) => {
     const { key } = e
     if (key === 'Enter' && !$paused) {
@@ -931,7 +914,7 @@
   }}
 />
 
-<Project name="MuscleCar">
+<!-- <Project name="MuscleCar">
   <Sheet>
     <Editable
       name="MuscleCar"
@@ -1024,7 +1007,7 @@
       }}
     />
   </Sheet>
-</Project>
+</Project> -->
 
 {#if !$paused}
   <Audio
