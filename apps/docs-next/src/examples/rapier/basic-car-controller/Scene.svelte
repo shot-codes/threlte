@@ -1,16 +1,11 @@
 <script lang="ts">
   import { T, useFrame, useRender, useThrelte } from '@threlte/core'
-  import { AudioListener, Environment, interactivity, OrbitControls, Portal } from '@threlte/extras'
+  import { AudioListener, OrbitControls, Portal } from '@threlte/extras'
   import { useRapier } from '@threlte/rapier'
-  import { useTheatre } from '@threlte/theatre'
   import Stats from 'stats.js'
   import { tick } from 'svelte'
-  import { DEG2RAD } from 'three/src/math/MathUtils'
-  import Car from './Car.svelte'
   import Game from './Game.svelte'
-  import MuscleCar from './MuscleCar.svelte'
-  import MuscleCarWheel from './MuscleCarWheel.svelte'
-  import { debug, paused } from './stores/app'
+  import { paused } from './stores/app'
   import type { CarState } from './types'
 
   let carState: CarState
@@ -21,8 +16,6 @@
   $: $paused ? pause() : resume()
 
   let edit = false
-
-  interactivity()
 
   const stats = new Stats()
   stats.showPanel(1) // 0: fps, 1: ms, 2: mb, 3+: custom
@@ -56,12 +49,8 @@
   }}
 />
 
+<!-- We're only using global audio, so a global Audio Listener is fine -->
 <AudioListener />
-
-<Environment
-  path="/hdr/"
-  files="shanghai_riverside_1k.hdr"
-/>
 
 {#if carState}
   <T.DirectionalLight
@@ -98,42 +87,3 @@
 >
   <OrbitControls />
 </T.PerspectiveCamera>
-
-<Car
-  bind:carState
-  debug={$debug}
->
-  <T.PerspectiveCamera
-    slot="camera"
-    rotation={[-90 * DEG2RAD, 75 * DEG2RAD, 90 * DEG2RAD]}
-    fov={70}
-    makeDefault={!edit}
-  />
-
-  <svelte:fragment
-    slot="body"
-    let:carState
-  >
-    <MuscleCar
-      isBraking={carState.isBraking}
-      rotation.y={(-90 * Math.PI) / 180}
-    />
-  </svelte:fragment>
-
-  <MuscleCarWheel
-    rotation.y={(90 * Math.PI) / 180}
-    slot="wheel-fl"
-  />
-  <MuscleCarWheel
-    rotation.y={(90 * Math.PI) / 180}
-    slot="wheel-fr"
-  />
-  <MuscleCarWheel
-    rotation.y={(90 * Math.PI) / 180}
-    slot="wheel-rl"
-  />
-  <MuscleCarWheel
-    rotation.y={(90 * Math.PI) / 180}
-    slot="wheel-rr"
-  />
-</Car>

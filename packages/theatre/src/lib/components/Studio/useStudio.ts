@@ -1,5 +1,5 @@
-import { IStudio } from '@theatre/studio'
-import { CurrentWritable } from '@threlte/core'
+import type { IStudio } from '@theatre/studio'
+import type { CurrentWritable } from '@threlte/core'
 import { getContext } from 'svelte'
 
 export const useStudio = () => {
@@ -7,5 +7,5 @@ export const useStudio = () => {
   if (!studio) {
     throw new Error('Theatre context not found, did you forget to wrap your app in <Theatre>?')
   }
-  return studio
+  return { studio }
 }

@@ -4,6 +4,10 @@
 >
   const geometry = new BoxGeometry(10, 5, 10)
   const material = new MeshStandardMaterial()
+
+  export const preloadFinish = async () => {
+    return useTexture(`/assets/basic-vehicle-controller/prototype-textures/Light/texture_07.png`)
+  }
 </script>
 
 <script lang="ts">
@@ -11,7 +15,7 @@
   import { useTexture } from '@threlte/extras'
   import { Collider, CollisionGroups } from '@threlte/rapier'
   import { BoxGeometry, MeshStandardMaterial } from 'three'
-  import Selection from './Selection.svelte'
+  import { useRefreshCollider } from '../utils/useRefreshCollider'
 
   // color: 'Dark' | 'Green' | 'Light' | 'Orange' | 'Purple' | 'Red' = 'Dark'
 
@@ -26,14 +30,15 @@
     finishreached: undefined
   }>()
 
-  export let selected: boolean = false
+  const { refreshFns } = useRefreshCollider()
 </script>
 
 <T.Group position.y={-2.5}>
   <Collider
     shape="cuboid"
     args={[5, 2.5, 5]}
-    type="dynamic"
+    type="static"
+    bind:refresh={refreshFns[0]}
   >
     <T.Mesh
       receiveShadow
@@ -45,22 +50,21 @@
         color="#68FF6A"
       />
 
-      {#if selected}
-        <Selection />
-      {/if}
+      <slot name="selection" />
     </T.Mesh>
   </Collider>
 
   <T.Group position.y={2.5 + 1.25}>
     <CollisionGroups groups={[3]}>
       <Collider
-        type="dynamic"
+        type="static"
         shape="cuboid"
         args={[5, 1.25, 5]}
         on:sensorenter={() => {
           dispatch('finishreached')
         }}
         sensor
+        bind:refresh={refreshFns[1]}
       />
     </CollisionGroups>
   </T.Group>

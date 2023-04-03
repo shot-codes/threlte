@@ -1,33 +1,35 @@
 <script lang="ts">
   import { T } from '@threlte/core'
   import { Editable, Project, Sheet, Studio } from '@threlte/theatre'
-  import { useLevel } from './Elements/elements'
-  import ElementSelector from './Elements/ElementSelector.svelte'
-  import RegisterSheetObject from './Elements/RegisterSheetObject.svelte'
-  import type { IStudio } from '@theatre/studio'
+  import ElementSelector from './ElementSelector.svelte'
+  import RegisterSheetObject from './RegisterSheetObject.svelte'
+  import Selection from './Selection.svelte'
+  import LevelElements from './LevelElements.svelte'
+  import { Environment, interactivity } from '@threlte/extras'
+  import LevelEditor from './LevelEditor.svelte'
+  import type { ElementConfigurations } from './types'
+  import SelectedSheetObject from './SelectedSheetObject.svelte'
 
   // Elements
   import BasicBox from './Elements/BasicBox.svelte'
-  import Ramp from './Elements/Ramp.svelte'
-  import { derived } from 'svelte/store'
-  import Finish from './Elements/Finish.svelte'
-  import { createEventDispatcher } from 'svelte'
-  import CheckpointRing from './Elements/CheckpointRing.svelte'
-  import RampInverse from './Elements/RampInverse.svelte'
-  import HalfBox from './Elements/HalfBox.svelte'
   import Checkpoint from './Elements/Checkpoint.svelte'
+  import CheckpointRing from './Elements/CheckpointRing.svelte'
+  import Finish from './Elements/Finish.svelte'
+  import HalfBox from './Elements/HalfBox.svelte'
+  import Ramp from './Elements/Ramp.svelte'
+  import RampInverse from './Elements/RampInverse.svelte'
+  import SheetObjectProvider from './SheetObjectProvider.svelte'
+  import LevelState from './LevelState.svelte'
 
   export let levelId: string
   export let canEdit = false
-  let studio: IStudio | undefined = undefined
+  export let edit = false
 
-  const { registerElements, registerExtension, objects, selectedId } = useLevel(levelId)
+  if (canEdit) {
+    interactivity()
+  }
 
-  const dispatch = createEventDispatcher<{
-    levelfinished: undefined
-  }>()
-
-  registerElements([
+  const elementConfigurations: ElementConfigurations = [
     {
       name: 'Box',
       component: BasicBox,
@@ -71,76 +73,128 @@
       component: Finish,
       buttonSvgSource: '🏁'
     }
-  ])
+  ]
 
-  registerExtension()
-
-  const totalCheckpoints = derived(objects, (objects) => {
-    return objects.filter(([_, name]) => name.startsWith('Checkpoint')).length
-  })
-
-  const checkpointsReached: Set<string> = new Set()
-
-  const onCheckpointReached = (checkpointId: string) => {
-    checkpointsReached.add(checkpointId)
-  }
-
-  const onFinishReached = () => {
-    if (checkpointsReached.size === $totalCheckpoints) {
-      dispatch('levelfinished')
+  const getProjectConfig = async () => {
+    try {
+      const text = await import(`./levels/${levelId}.json?raw`)
+      const json = JSON.parse(text.default)
+      return {
+        state: json
+      }
+    } catch (error) {
+      console.log(`Level state for level ${levelId} not found.`)
+      return undefined
     }
   }
-
-  let edit = false
-  $: edit ? studio?.ui.restore() : studio?.ui.hide()
 </script>
 
-<svelte:window
-  on:keypress={(e) => {
-    if (e.key === 'e') {
-      edit = !edit
-    }
-  }}
+<Environment
+  path="/hdr/"
+  files="shanghai_riverside_1k.hdr"
 />
 
-<BasicBox selected={false} />
+<!-- TODO: DEFAULT BOX, NEEDS TO BE REPLACED BY START BLOCK -->
+<BasicBox />
 
-<!-- !!!!! TODO: STUDIO IS PLACED HERE AND THE CONTEXT IS NOT AVAILABLE
-	IN useLevel, ALSO THE DEFAULT PROJECT IS NOT AVAILABLE. -->
+{#await getProjectConfig() then config}
+  <Studio enabled={canEdit}>
+    <Project
+      name={levelId}
+      {config}
+    >
+      <Sheet
+        name={levelId}
+        let:sheet
+      >
+        <LevelElements
+          {sheet}
+          {elementConfigurations}
+          {levelId}
+          let:objects
+          let:sheetObject
+          let:entities
+          let:levelSheetObjects
+          let:checkpointCount
+          let:finishCount
+        >
+          <LevelEditor
+            {entities}
+            {sheetObject}
+            {elementConfigurations}
+            {levelSheetObjects}
+          />
 
-<Studio
-  enabled={canEdit}
-  bind:studio
->
-  <Project name="level">
-    <!-- <Floor /> -->
-    <Sheet name={levelId}>
-      {#each $objects as [component, name, ids], index (name)}
-        {#each ids as id, index (`${name}-${id}`)}
-          <T.Group>
-            <Editable
-              controls
-              transform
-              name={`${name}-${id}`}
-              let:object
+          <SelectedSheetObject
+            {canEdit}
+            let:selectedObjectKey
+          >
+            <LevelState
+              {checkpointCount}
+              {finishCount}
+              let:registerCheckpointReached
+              let:registerFinishReached
+              let:levelComplete
+              on:levelcomplete
             >
-              <RegisterSheetObject {object} />
-              <ElementSelector {object}>
-                <svelte:component
-                  this={component}
-                  selected={$selectedId === id}
-                  name={`${name}-${id}`}
-                  sheetObject={object}
-                  on:checkpointreached={() => {
-                    onCheckpointReached(id)
-                  }}
-                  on:finishreached={onFinishReached}
-                />
-              </ElementSelector>
-            </Editable>
-          </T.Group>
-        {/each}
-      {/each}
-    </Sheet>
-  </Project>
-</Studio>
+              <!-- Level Content -->
+              {#each objects as [component, name, ids] (name)}
+                {#each ids as id (`${name}-${id}`)}
+                  <T.Group>
+                    <Editable
+                      controls
+                      transform
+                      name={`${name}-${id}`}
+                      let:object
+                    >
+                      {#if canEdit}
+                        <!-- Level editor mode -->
+                        <!-- Register the sheet object is only mandatory for the level editor -->
+                        <RegisterSheetObject
+                          {object}
+                          {levelSheetObjects}
+                        />
+                        <SheetObjectProvider sheetObject={object}>
+                          <ElementSelector {object}>
+                            <svelte:component
+                              this={component}
+                              on:checkpointreached={() => {
+                                registerCheckpointReached(`${name}-${id}`)
+                              }}
+                              on:finishreached={() => {
+                                registerFinishReached(`${name}-${id}`)
+                              }}
+                            >
+                              <svelte:fragment slot="selection">
+                                {#if selectedObjectKey === object.address.objectKey}
+                                  <Selection />
+                                {/if}
+                              </svelte:fragment>
+                            </svelte:component>
+                          </ElementSelector>
+                        </SheetObjectProvider>
+                      {:else}
+                        <!-- Game mode -->
+                        <svelte:component
+                          this={component}
+                          on:checkpointreached={() => {
+                            registerCheckpointReached(`${name}-${id}`)
+                          }}
+                          on:finishreached={() => {
+                            registerFinishReached(`${name}-${id}`)
+                          }}
+                        />
+                      {/if}
+                    </Editable>
+                  </T.Group>
+                {/each}
+              {/each}
+
+              <slot {levelComplete} />
+            </LevelState>
+          </SelectedSheetObject>
+        </LevelElements>
+      </Sheet>
+    </Project>
+  </Studio>
+{/await}

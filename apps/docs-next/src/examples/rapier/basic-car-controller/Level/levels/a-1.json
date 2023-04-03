@@ -1,0 +1,86 @@
+{
+  "sheetsById": {
+    "a-1": {
+      "staticOverrides": {
+        "byObject": {
+          "a-1-elements": {
+            "Box": "a,23b1e790ed625",
+            "HalfBox": "",
+            "Ramp": "",
+            "RampInverse": "",
+            "Checkpoint": "c917c6924ceb1,e01923c69c92",
+            "CheckpointRing": "",
+            "Finish": ""
+          },
+          "Box-a": {
+            "Position": {
+              "x": -10,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "Box-23b1e790ed625": {
+            "Position": {
+              "x": -10,
+              "y": 0,
+              "z": -10
+            }
+          },
+          "HalfBox-5ef44cb772313": {
+            "Position": {
+              "x": 0,
+              "y": 0,
+              "z": -10
+            }
+          },
+          "Box-4d2cdf328ac4d": {
+            "Position": {
+              "x": 0,
+              "y": 0.2870079484081236,
+              "z": -10
+            },
+            "Rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "Scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "Checkpoint-c917c6924ceb1": {
+            "Position": {
+              "x": -24,
+              "y": 0.2870079484081236,
+              "z": -10
+            },
+            "Rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "Scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "Checkpoint-e01923c69c92": {
+            "Position": {
+              "x": -20,
+              "y": 0,
+              "z": 0
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitionVersion": "0.4.0",
+  "revisionHistory": [
+    "oZwCfmIQnDhNJ3pW",
+    "gPgds_I3lkVdraa9"
+  ]
+}

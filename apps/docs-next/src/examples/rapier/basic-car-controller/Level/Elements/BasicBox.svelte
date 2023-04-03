@@ -6,6 +6,13 @@
   const material = new MeshStandardMaterial({
     roughness: 0.4
   })
+
+  export const preloadBasicBox = async () => {
+    return useTexture({
+      map: `/assets/basic-vehicle-controller/prototype-textures/Dark/texture_06.png`,
+      roughnessMap: `/assets/basic-vehicle-controller/prototype-textures/Dark/texture_06_roughness.png`
+    })
+  }
 </script>
 
 <script lang="ts">
@@ -13,7 +20,7 @@
   import { useTexture } from '@threlte/extras'
   import { Collider } from '@threlte/rapier'
   import { BoxGeometry, MeshStandardMaterial } from 'three'
-  import Selection from './Selection.svelte'
+  import { useRefreshCollider } from '../utils/useRefreshCollider'
 
   // color: 'Dark' | 'Green' | 'Light' | 'Orange' | 'Purple' | 'Red' = 'Dark'
   const textures = useTexture({
@@ -21,20 +28,21 @@
     roughnessMap: `/assets/basic-vehicle-controller/prototype-textures/Dark/texture_06_roughness.png`
   })
 
-  export let selected: boolean = false
-
   $: if ($textures && !material.map) {
     material.map = $textures.map
     material.roughnessMap = $textures.roughnessMap
     material.needsUpdate = true
   }
+
+  const { refreshFns } = useRefreshCollider()
 </script>
 
 <T.Group position.y={-5}>
   <Collider
     shape="cuboid"
     args={[5, 5, 5]}
-    type="dynamic"
+    type="static"
+    bind:refresh={refreshFns[0]}
   >
     <T.Mesh
       receiveShadow
@@ -43,9 +51,7 @@
       <T is={geometry} />
       <T is={material} />
 
-      {#if selected}
-        <Selection />
-      {/if}
+      <slot name="selection" />
     </T.Mesh>
   </Collider>
 </T.Group>

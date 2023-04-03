@@ -6,17 +6,18 @@
   const material = new MeshStandardMaterial()
 
   const lowPolyGeometry = new TorusGeometry(4.5, 0.5, 4, 12)
+
+  export const preloadCheckpointRing = async () => {
+    return useTexture(`/assets/basic-vehicle-controller/prototype-textures/Purple/texture_06.png`)
+  }
 </script>
 
 <script lang="ts">
-  import type { ISheetObject } from '@theatre/core'
-
   import { createRawEventDispatcher, T } from '@threlte/core'
   import { useTexture } from '@threlte/extras'
   import { AutoColliders, Collider, CollisionGroups } from '@threlte/rapier'
   import { MeshStandardMaterial, TorusGeometry } from 'three'
-  import Selection from './Selection.svelte'
-  import { useSheetObjectToUpdateAutoColliders } from './useSheetObjectToUpdateAutoColliders'
+  import { useRefreshCollider } from '../utils/useRefreshCollider'
 
   // color: 'Dark' | 'Green' | 'Light' | 'Orange' | 'Purple' | 'Red' = 'Dark'
 
@@ -33,16 +34,13 @@
     checkpointreached: undefined
   }>()
 
-  export let sheetObject: ISheetObject | undefined = undefined
-  const { refresh } = useSheetObjectToUpdateAutoColliders(sheetObject)
-
-  export let selected: boolean = false
+  const { refreshFns } = useRefreshCollider()
 </script>
 
 <T.Group {...$$restProps}>
   <AutoColliders
     shape="trimesh"
-    bind:refresh={$refresh}
+    bind:refresh={refreshFns[0]}
   >
     <T.Mesh visible={false}>
       <T is={lowPolyGeometry} />
@@ -56,21 +54,20 @@
     <T is={geometry} />
     <T is={material} />
 
-    {#if selected}
-      <Selection />
-    {/if}
+    <slot name="selection" />
   </T.Mesh>
 
   <T.Group rotation.x={(90 * Math.PI) / 180}>
     <CollisionGroups groups={[3]}>
       <Collider
-        type="dynamic"
+        type="static"
         shape="cylinder"
         args={[0.5, 4.5]}
         on:sensorenter={() => {
           dispatch('checkpointreached')
         }}
         sensor
+        bind:refresh={refreshFns[1]}
       />
     </CollisionGroups>
   </T.Group>

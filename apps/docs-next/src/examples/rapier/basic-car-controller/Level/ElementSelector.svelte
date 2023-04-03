@@ -5,7 +5,7 @@
   import { useStudio } from '@threlte/theatre'
   import { onDestroy, onMount } from 'svelte'
 
-  const studio = useStudio()
+  const { studio } = useStudio()
 
   export let object: ISheetObject
 

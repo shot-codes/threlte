@@ -1,12 +1,10 @@
 <script lang="ts">
   import type { ISheetObject } from '@theatre/core'
   import type { CurrentWritable } from '@threlte/core'
-  import { getContext, onDestroy } from 'svelte'
+  import { onDestroy } from 'svelte'
 
   export let object: ISheetObject
-
-  const levelSheetObjects =
-    getContext<CurrentWritable<Record<string, ISheetObject>>>('level-sheet-objects')
+  export let levelSheetObjects: CurrentWritable<Record<string, ISheetObject>>
 
   levelSheetObjects.update((sheetObjects) => {
     sheetObjects[object.address.objectKey] = object
