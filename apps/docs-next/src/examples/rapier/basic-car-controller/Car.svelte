@@ -914,101 +914,6 @@
   }}
 />
 
-<!-- <Project name="MuscleCar">
-  <Sheet>
-    <Editable
-      name="MuscleCar"
-      props={{
-        carWeight,
-        maxDesiredVelocity,
-        suspensionStiffness,
-        suspensionDamping,
-        maxGroundClearance,
-        suspensionImpulseMultiplier,
-        forwardImpulseMultiplier,
-        backwardImpulseMultiplier,
-        brakeImpulseMultiplier,
-        steeringTorqueMultiplier,
-        angularDamping,
-        angularDampingWhenInAir,
-        angularDampingWhenBrakingInAir,
-        linearDamping,
-        linearDampingWhenInAir,
-        linearDampingWhenBrakingInAir,
-        COMx: virtualCenterOfMass.x,
-        COMy: virtualCenterOfMass.y,
-        COMz: virtualCenterOfMass.z,
-        maxPlaybackRate,
-        idleVolume,
-        loadVolume,
-        volumePlaybackRateMultiplier,
-        desiredCameraDistance,
-        desiredCameraHeight,
-        cameraDistanceToWalls,
-        frictionCoefficient
-      }}
-      on:change={(values) => {
-        carWeight = values.carWeight
-        maxDesiredVelocity = values.maxDesiredVelocity
-        suspensionStiffness = values.suspensionStiffness
-        suspensionDamping = values.suspensionDamping
-        maxGroundClearance = values.maxGroundClearance
-        suspensionImpulseMultiplier = values.suspensionImpulseMultiplier
-        forwardImpulseMultiplier = values.forwardImpulseMultiplier
-        backwardImpulseMultiplier = values.backwardImpulseMultiplier
-        brakeImpulseMultiplier = values.brakeImpulseMultiplier
-        steeringTorqueMultiplier = values.steeringTorqueMultiplier
-        angularDamping = values.angularDamping
-        angularDampingWhenInAir = values.angularDampingWhenInAir
-        angularDampingWhenBrakingInAir = values.angularDampingWhenBrakingInAir
-        linearDamping = values.linearDamping
-        linearDampingWhenInAir = values.linearDampingWhenInAir
-        linearDampingWhenBrakingInAir = values.linearDampingWhenBrakingInAir
-        virtualCenterOfMass.x = values.COMx
-        virtualCenterOfMass.y = values.COMy
-        virtualCenterOfMass.z = values.COMz
-        maxPlaybackRate = values.maxPlaybackRate
-        idleVolume = values.idleVolume
-        loadVolume = values.loadVolume
-        volumePlaybackRateMultiplier = values.volumePlaybackRateMultiplier
-        desiredCameraDistance = values.desiredCameraDistance
-        desiredCameraHeight = values.desiredCameraHeight
-        cameraDistanceToWalls = values.cameraDistanceToWalls
-        frictionCoefficient = values.frictionCoefficient
-      }}
-      on:create={(values) => {
-        carWeight = values.carWeight
-        maxDesiredVelocity = values.maxDesiredVelocity
-        suspensionStiffness = values.suspensionStiffness
-        suspensionDamping = values.suspensionDamping
-        maxGroundClearance = values.maxGroundClearance
-        suspensionImpulseMultiplier = values.suspensionImpulseMultiplier
-        forwardImpulseMultiplier = values.forwardImpulseMultiplier
-        backwardImpulseMultiplier = values.backwardImpulseMultiplier
-        brakeImpulseMultiplier = values.brakeImpulseMultiplier
-        steeringTorqueMultiplier = values.steeringTorqueMultiplier
-        angularDamping = values.angularDamping
-        angularDampingWhenInAir = values.angularDampingWhenInAir
-        angularDampingWhenBrakingInAir = values.angularDampingWhenBrakingInAir
-        linearDamping = values.linearDamping
-        linearDampingWhenInAir = values.linearDampingWhenInAir
-        linearDampingWhenBrakingInAir = values.linearDampingWhenBrakingInAir
-        virtualCenterOfMass.x = values.COMx
-        virtualCenterOfMass.y = values.COMy
-        virtualCenterOfMass.z = values.COMz
-        maxPlaybackRate = values.maxPlaybackRate
-        idleVolume = values.idleVolume
-        loadVolume = values.loadVolume
-        volumePlaybackRateMultiplier = values.volumePlaybackRateMultiplier
-        desiredCameraDistance = values.desiredCameraDistance
-        desiredCameraHeight = values.desiredCameraHeight
-        cameraDistanceToWalls = values.cameraDistanceToWalls
-        frictionCoefficient = values.frictionCoefficient
-      }}
-    />
-  </Sheet>
-</Project> -->
-
 {#if !$paused}
   <Audio
     src="/assets/basic-vehicle-controller/engine6.wav"
@@ -1096,4 +1001,6 @@
       />
     </T.Group>
   </T.Group>
+
+  <slot {carState} />
 </T.Group>

@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { T } from '@threlte/core'
+  import { T, useThrelte } from '@threlte/core'
+  import { Portal } from '@threlte/extras'
   import { DEG2RAD } from 'three/src/math/MathUtils'
   import Car from './Car.svelte'
   import Level from './Level/Level.svelte'
@@ -8,6 +9,8 @@
   import { debug } from './stores/app'
 
   let levelId = 'a-1'
+
+  const { scene } = useThrelte()
 </script>
 
 <Level
@@ -58,5 +61,29 @@
     >
       <MuscleCarWheel />
     </T.Group>
+
+    <svelte:fragment let:carState>
+      <T.DirectionalLight
+        intensity={0.4}
+        position.x={carState.worldPosition.x + 8}
+        position.y={carState.worldPosition.y + 20}
+        position.z={carState.worldPosition.z - 3}
+        shadow.camera.left={-10}
+        shadow.camera.right={10}
+        shadow.camera.top={10}
+        shadow.camera.bottom={-10}
+        castShadow
+        let:ref
+      >
+        <Portal object={scene}>
+          <T
+            is={ref.target}
+            position.x={carState.worldPosition.x}
+            position.y={carState.worldPosition.y}
+            position.z={carState.worldPosition.z}
+          />
+        </Portal>
+      </T.DirectionalLight>
+    </svelte:fragment>
   </Car>
 </Level>
