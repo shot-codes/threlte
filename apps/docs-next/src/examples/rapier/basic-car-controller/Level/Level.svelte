@@ -20,10 +20,12 @@
   import RampInverse from './Elements/RampInverse.svelte'
   import SheetObjectProvider from './SheetObjectProvider.svelte'
   import LevelState from './LevelState.svelte'
+  import { paused } from '../stores/app'
 
   export let levelId: string
   export let canEdit = false
-  export let edit = false
+
+  export let editing = false
 
   if (canEdit) {
     interactivity()
@@ -75,6 +77,12 @@
     }
   ]
 
+  $: if (editing) {
+    paused.set(true)
+  } else {
+    paused.set(false)
+  }
+
   const getProjectConfig = async () => {
     try {
       const text = await import(`./levels/${levelId}.json?raw`)
@@ -89,6 +97,15 @@
   }
 </script>
 
+<svelte:window
+  on:keypress={(e) => {
+    if (!canEdit) return
+    if (e.key === 'e') {
+      editing = !editing
+    }
+  }}
+/>
+
 <Environment
   path="/hdr/"
   files="shanghai_riverside_1k.hdr"
@@ -98,7 +115,10 @@
 <BasicBox />
 
 {#await getProjectConfig() then config}
-  <Studio enabled={canEdit}>
+  <Studio
+    enabled={canEdit}
+    hide={!editing}
+  >
     <Project
       name={levelId}
       {config}
@@ -190,7 +210,10 @@
                 {/each}
               {/each}
 
-              <slot {levelComplete} />
+              <slot
+                {levelComplete}
+                {editing}
+              />
             </LevelState>
           </SelectedSheetObject>
         </LevelElements>

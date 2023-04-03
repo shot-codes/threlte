@@ -1,6 +1,6 @@
 <script lang="ts">
   import { T, useThrelte } from '@threlte/core'
-  import { Portal } from '@threlte/extras'
+  import { OrbitControls, Portal } from '@threlte/extras'
   import { DEG2RAD } from 'three/src/math/MathUtils'
   import Car from './Car.svelte'
   import Level from './Level/Level.svelte'
@@ -16,13 +16,14 @@
 <Level
   {levelId}
   canEdit={true}
+  let:editing
 >
   <Car debug={$debug}>
     <T.PerspectiveCamera
       slot="camera"
       rotation={[-90 * DEG2RAD, 75 * DEG2RAD, 90 * DEG2RAD]}
       fov={70}
-      makeDefault
+      makeDefault={!editing}
     />
 
     <svelte:fragment
@@ -86,4 +87,15 @@
       </T.DirectionalLight>
     </svelte:fragment>
   </Car>
+
+  <!-- Level editing camera -->
+  <T.PerspectiveCamera
+    position.x={30}
+    position.y={30}
+    position.z={30}
+    fov={70}
+    makeDefault={editing}
+  >
+    <OrbitControls />
+  </T.PerspectiveCamera>
 </Level>

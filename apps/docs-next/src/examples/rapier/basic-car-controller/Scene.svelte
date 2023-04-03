@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { T, useFrame, useRender } from '@threlte/core'
-  import { AudioListener, OrbitControls } from '@threlte/extras'
+  import { useFrame, useRender } from '@threlte/core'
+  import { AudioListener } from '@threlte/extras'
   import { useRapier } from '@threlte/rapier'
   import Stats from 'stats.js'
   import { tick } from 'svelte'
@@ -10,8 +10,6 @@
   const { pause, resume } = useRapier()
 
   $: $paused ? pause() : resume()
-
-  let edit = false
 
   const stats = new Stats()
   stats.showPanel(1) // 0: fps, 1: ms, 2: mb, 3+: custom
@@ -49,13 +47,3 @@
 <AudioListener />
 
 <Game />
-
-<T.PerspectiveCamera
-  position.x={30}
-  position.y={30}
-  position.z={30}
-  fov={70}
-  makeDefault={edit}
->
-  <OrbitControls />
-</T.PerspectiveCamera>
