@@ -1,26 +1,32 @@
 <script lang="ts">
   import { T } from '@threlte/core'
+  import { Environment, interactivity } from '@threlte/extras'
   import { Editable, Project, Sheet, Studio } from '@threlte/theatre'
   import ElementSelector from './ElementSelector.svelte'
-  import RegisterSheetObject from './RegisterSheetObject.svelte'
-  import Selection from './Selection.svelte'
-  import LevelElements from './LevelElements.svelte'
-  import { Environment, interactivity } from '@threlte/extras'
   import LevelEditor from './LevelEditor.svelte'
-  import type { ElementConfigurations } from './types'
+  import LevelElements from './LevelElements.svelte'
+  import RegisterSheetObject from './RegisterSheetObject.svelte'
   import SelectedSheetObject from './SelectedSheetObject.svelte'
-
+  import Selection from './Selection.svelte'
+  import type { ElementConfigurations } from './types'
   // Elements
+  import { paused } from '../stores/app'
+  import BarrierEnd from './Elements/BarrierEnd.svelte'
+  import BarrierTurnLeft from './Elements/BarrierTurnLeft.svelte'
+  import BarrierTurnRight from './Elements/BarrierTurnRight.svelte'
   import BasicBox from './Elements/BasicBox.svelte'
+  import Boost from './Elements/Boost.svelte'
   import Checkpoint from './Elements/Checkpoint.svelte'
   import CheckpointRing from './Elements/CheckpointRing.svelte'
+  import DoubleBarrier from './Elements/DoubleBarrier.svelte'
   import Finish from './Elements/Finish.svelte'
   import HalfBox from './Elements/HalfBox.svelte'
   import Ramp from './Elements/Ramp.svelte'
   import RampInverse from './Elements/RampInverse.svelte'
-  import SheetObjectProvider from './SheetObjectProvider.svelte'
   import LevelState from './LevelState.svelte'
-  import { paused } from '../stores/app'
+  import SheetObjectProvider from './SheetObjectProvider.svelte'
+  import Barrier from './Elements/Barrier.svelte'
+  import Slope from './Elements/Slope.svelte'
 
   export let levelId: string
   export let canEdit = false
@@ -74,6 +80,48 @@
       name: 'Finish',
       component: Finish,
       buttonSvgSource: '🏁'
+    },
+
+    {
+      name: 'Boost',
+      component: Boost,
+      buttonSvgSource: 'B'
+    },
+
+    {
+      name: 'Barrier',
+      component: Barrier,
+      buttonSvgSource: 'BA'
+    },
+
+    {
+      name: 'DoubleBarrier',
+      component: DoubleBarrier,
+      buttonSvgSource: 'DB'
+    },
+
+    {
+      name: 'BarrierEnd',
+      component: BarrierEnd,
+      buttonSvgSource: 'BE'
+    },
+
+    {
+      name: 'BarrierTurnLeft',
+      component: BarrierTurnLeft,
+      buttonSvgSource: 'BTL'
+    },
+
+    {
+      name: 'BarrierTurnRight',
+      component: BarrierTurnRight,
+      buttonSvgSource: 'BTR'
+    },
+
+    {
+      name: 'Slope',
+      component: Slope,
+      buttonSvgSource: 'S'
     }
   ]
 
@@ -162,7 +210,7 @@
                 {#each ids as id (`${name}-${id}`)}
                   <T.Group>
                     <Editable
-                      controls
+                      controls={editing}
                       transform
                       name={`${name}-${id}`}
                       let:object
@@ -175,7 +223,10 @@
                           {levelSheetObjects}
                         />
                         <SheetObjectProvider sheetObject={object}>
-                          <ElementSelector {object}>
+                          <ElementSelector
+                            {object}
+                            {editing}
+                          >
                             <svelte:component
                               this={component}
                               on:checkpointreached={() => {
@@ -186,7 +237,7 @@
                               }}
                             >
                               <svelte:fragment slot="selection">
-                                {#if selectedObjectKey === object.address.objectKey}
+                                {#if editing && selectedObjectKey === object.address.objectKey}
                                   <Selection />
                                 {/if}
                               </svelte:fragment>

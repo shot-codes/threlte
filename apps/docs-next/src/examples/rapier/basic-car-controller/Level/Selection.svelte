@@ -9,7 +9,7 @@
   const material = new MeshStandardMaterial({
     color: 'blue'
   })
-  export let edgesThresholdAngle = 10
+  export let edgesThresholdAngle = 20
 </script>
 
 <Edges

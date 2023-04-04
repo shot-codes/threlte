@@ -8,8 +8,10 @@
   const { studio } = useStudio()
 
   export let object: ISheetObject
+  export let editing: boolean
 
   const onClick = (e: any) => {
+    if (!editing) return
     e.stopPropagation()
     studio.current?.setSelection([object])
   }
@@ -30,10 +32,15 @@
 
 <T.Group
   on:pointermissed={() => {
+    if (!editing) return
     studio.current?.setSelection([])
   }}
-  on:pointerleave={onPointerLeave}
+  on:pointerleave={() => {
+    if (!editing) return
+    onPointerLeave()
+  }}
   on:pointerenter={(e) => {
+    if (!editing) return
     e.stopPropagation()
     onPointerEnter()
   }}

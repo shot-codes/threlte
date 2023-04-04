@@ -12,6 +12,7 @@ Command: npx @threlte/gltf@1.0.0-next.2 ./checkpoint.glb -i -P -t -s -T
   import { useGltf } from '@threlte/extras'
   import { useRefreshCollider } from '../utils/useRefreshCollider'
   import { Collider, CollisionGroups } from '@threlte/rapier'
+  import { paused } from '../../stores/app'
 
   type GLTFResult = {
     nodes: {
@@ -52,10 +53,15 @@ Command: npx @threlte/gltf@1.0.0-next.2 ./checkpoint.glb -i -P -t -s -T
 
   $: signMaterial = $gltf?.materials.Material.clone()
 
-  useFrame(() => {
+  const { start, stop } = useFrame(() => {
     if (!signMesh) return
     signMesh.rotation.y -= 0.007
   })
+  $: if ($paused) {
+    stop()
+  } else {
+    start()
+  }
 
   const { refreshFns } = useRefreshCollider()
 </script>
@@ -86,6 +92,7 @@ Command: npx @threlte/gltf@1.0.0-next.2 ./checkpoint.glb -i -P -t -s -T
           material.roughness={0.3}
           material.metalness={0.3}
           material.emissive={reached ? 'green' : 'red'}
+          bind:ref={signMesh}
         >
           <Collider
             shape="cylinder"
