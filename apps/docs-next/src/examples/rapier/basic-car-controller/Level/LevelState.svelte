@@ -1,5 +1,22 @@
+<script
+  lang="ts"
+  context="module"
+>
+  import { currentWritable, CurrentWritable } from '@threlte/core'
+
+  type LevelStateContext = {
+    checkpointsReached: CurrentWritable<Set<string>>
+    registerCheckpointReached: (checkpointId: string) => void
+    registerFinishReached: () => void
+  }
+
+  export const useLevelState = () => {
+    return getContext<LevelStateContext>('level-state')
+  }
+</script>
+
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte'
+  import { createEventDispatcher, getContext, setContext } from 'svelte'
 
   export let checkpointCount: number
   export let finishCount: number
@@ -10,25 +27,38 @@
     levelcomplete: void
   }>()
 
-  const checkpointsReached = new Set<string>()
+  const checkpointsReached = currentWritable(new Set<string>())
   let levelComplete = false
 
   const registerCheckpointReached = (checkpointId: string) => {
-    console.log('Checkpoint reached:', checkpointId)
-    checkpointsReached.add(checkpointId)
+    checkpointsReached.update((set) => {
+      set.add(checkpointId)
+      return set
+    })
   }
 
-  const registerFinishReached = (finishId: string) => {
-    console.log('Finish passed:', finishId)
-    if (checkpointsReached.size === checkpointCount) {
+  const registerFinishReached = () => {
+    if (checkpointsReached.current.size === checkpointCount) {
       dispatch('levelcomplete')
       levelComplete = true
     }
   }
+
+  const levelStateContext: LevelStateContext = {
+    checkpointsReached,
+    registerCheckpointReached,
+    registerFinishReached
+  }
+
+  setContext<LevelStateContext>('level-state', levelStateContext)
+
+  export const resetLevelState = () => {
+    checkpointsReached.update((set) => {
+      set.clear()
+      return set
+    })
+    levelComplete = false
+  }
 </script>
 
-<slot
-  {registerCheckpointReached}
-  {registerFinishReached}
-  {levelComplete}
-/>
+<slot {levelComplete} />

@@ -11,10 +11,11 @@
 </script>
 
 <script lang="ts">
-  import { createRawEventDispatcher, T } from '@threlte/core'
+  import { T } from '@threlte/core'
   import { useTexture } from '@threlte/extras'
   import { Collider, CollisionGroups } from '@threlte/rapier'
   import { BoxGeometry, MeshStandardMaterial } from 'three'
+  import { useLevelState } from '../LevelState.svelte'
   import { useRefreshCollider } from '../utils/useRefreshCollider'
 
   // color: 'Dark' | 'Green' | 'Light' | 'Orange' | 'Purple' | 'Red' = 'Dark'
@@ -26,9 +27,7 @@
     material.needsUpdate = true
   }
 
-  const dispatch = createRawEventDispatcher<{
-    finishreached: undefined
-  }>()
+  const { registerFinishReached } = useLevelState()
 
   const { refreshFns } = useRefreshCollider()
 </script>
@@ -61,7 +60,7 @@
         shape="cuboid"
         args={[5, 1.25, 5]}
         on:sensorenter={() => {
-          dispatch('finishreached')
+          registerFinishReached()
         }}
         sensor
         bind:refresh={refreshFns[1]}

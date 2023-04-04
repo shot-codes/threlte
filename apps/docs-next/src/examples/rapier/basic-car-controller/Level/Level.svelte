@@ -10,7 +10,7 @@
   import Selection from './Selection.svelte'
   import type { ElementConfigurations } from './types'
   // Elements
-  import { paused } from '../stores/app'
+  import { isEditing, paused } from '../stores/app'
   import BarrierEnd from './Elements/BarrierEnd.svelte'
   import BarrierTurnLeft from './Elements/BarrierTurnLeft.svelte'
   import BarrierTurnRight from './Elements/BarrierTurnRight.svelte'
@@ -27,11 +27,11 @@
   import SheetObjectProvider from './SheetObjectProvider.svelte'
   import Barrier from './Elements/Barrier.svelte'
   import Slope from './Elements/Slope.svelte'
+  import LoadEvent from './LoadEvent.svelte'
+  import ElementContext from './ElementContext.svelte'
 
   export let levelId: string
   export let canEdit = false
-
-  export let editing = false
 
   if (canEdit) {
     interactivity()
@@ -125,7 +125,7 @@
     }
   ]
 
-  $: if (editing) {
+  $: if ($isEditing) {
     paused.set(true)
   } else {
     paused.set(false)
@@ -143,13 +143,19 @@
       return undefined
     }
   }
+
+  let resetLevelState: () => void
+
+  export const resetLevel = () => {
+    resetLevelState?.()
+  }
 </script>
 
 <svelte:window
   on:keypress={(e) => {
     if (!canEdit) return
     if (e.key === 'e') {
-      editing = !editing
+      $isEditing = !$isEditing
     }
   }}
 />
@@ -165,7 +171,7 @@
 {#await getProjectConfig() then config}
   <Studio
     enabled={canEdit}
-    hide={!editing}
+    hide={!$isEditing}
   >
     <Project
       name={levelId}
@@ -198,73 +204,57 @@
             let:selectedObjectKey
           >
             <LevelState
+              bind:resetLevelState
               {checkpointCount}
               {finishCount}
-              let:registerCheckpointReached
-              let:registerFinishReached
               let:levelComplete
               on:levelcomplete
             >
+              <LoadEvent on:levelloaded />
+
               <!-- Level Content -->
               {#each objects as [component, name, ids] (name)}
                 {#each ids as id (`${name}-${id}`)}
                   <T.Group>
                     <Editable
-                      controls={editing}
+                      controls={$isEditing}
                       transform
                       name={`${name}-${id}`}
                       let:object
                     >
-                      {#if canEdit}
-                        <!-- Level editor mode -->
-                        <!-- Register the sheet object is only mandatory for the level editor -->
-                        <RegisterSheetObject
-                          {object}
-                          {levelSheetObjects}
-                        />
-                        <SheetObjectProvider sheetObject={object}>
-                          <ElementSelector
+                      <ElementContext name={`${name}-${id}`}>
+                        {#if canEdit}
+                          <!-- Level editor mode -->
+                          <!-- Register the sheet object is only mandatory for the level editor -->
+                          <RegisterSheetObject
                             {object}
-                            {editing}
-                          >
-                            <svelte:component
-                              this={component}
-                              on:checkpointreached={() => {
-                                registerCheckpointReached(`${name}-${id}`)
-                              }}
-                              on:finishreached={() => {
-                                registerFinishReached(`${name}-${id}`)
-                              }}
+                            {levelSheetObjects}
+                          />
+                          <SheetObjectProvider sheetObject={object}>
+                            <ElementSelector
+                              {object}
+                              editing={$isEditing}
                             >
-                              <svelte:fragment slot="selection">
-                                {#if editing && selectedObjectKey === object.address.objectKey}
-                                  <Selection />
-                                {/if}
-                              </svelte:fragment>
-                            </svelte:component>
-                          </ElementSelector>
-                        </SheetObjectProvider>
-                      {:else}
-                        <!-- Game mode -->
-                        <svelte:component
-                          this={component}
-                          on:checkpointreached={() => {
-                            registerCheckpointReached(`${name}-${id}`)
-                          }}
-                          on:finishreached={() => {
-                            registerFinishReached(`${name}-${id}`)
-                          }}
-                        />
-                      {/if}
+                              <svelte:component this={component}>
+                                <svelte:fragment slot="selection">
+                                  {#if $isEditing && selectedObjectKey === object.address.objectKey}
+                                    <Selection />
+                                  {/if}
+                                </svelte:fragment>
+                              </svelte:component>
+                            </ElementSelector>
+                          </SheetObjectProvider>
+                        {:else}
+                          <!-- Game mode -->
+                          <svelte:component this={component} />
+                        {/if}
+                      </ElementContext>
                     </Editable>
                   </T.Group>
                 {/each}
               {/each}
 
-              <slot
-                {levelComplete}
-                {editing}
-              />
+              <slot {levelComplete} />
             </LevelState>
           </SelectedSheetObject>
         </LevelElements>

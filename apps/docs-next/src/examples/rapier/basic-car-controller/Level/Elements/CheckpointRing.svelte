@@ -13,10 +13,12 @@
 </script>
 
 <script lang="ts">
-  import { createRawEventDispatcher, T } from '@threlte/core'
+  import { T } from '@threlte/core'
   import { useTexture } from '@threlte/extras'
   import { AutoColliders, Collider, CollisionGroups } from '@threlte/rapier'
   import { MeshStandardMaterial, TorusGeometry } from 'three'
+  import { useElement } from '../ElementContext.svelte'
+  import { useLevelState } from '../LevelState.svelte'
   import { useRefreshCollider } from '../utils/useRefreshCollider'
 
   // color: 'Dark' | 'Green' | 'Light' | 'Orange' | 'Purple' | 'Red' = 'Dark'
@@ -30,11 +32,10 @@
     material.needsUpdate = true
   }
 
-  const dispatch = createRawEventDispatcher<{
-    checkpointreached: undefined
-  }>()
-
   const { refreshFns } = useRefreshCollider()
+
+  const { name } = useElement()
+  const { registerCheckpointReached } = useLevelState()
 </script>
 
 <T.Group {...$$restProps}>
@@ -64,7 +65,7 @@
         shape="cylinder"
         args={[0.5, 4.5]}
         on:sensorenter={() => {
-          dispatch('checkpointreached')
+          registerCheckpointReached(name)
         }}
         sensor
         bind:refresh={refreshFns[1]}

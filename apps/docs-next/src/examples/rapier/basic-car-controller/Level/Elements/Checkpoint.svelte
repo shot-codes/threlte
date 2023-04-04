@@ -6,13 +6,16 @@ Command: npx @threlte/gltf@1.0.0-next.2 ./checkpoint.glb -i -P -t -s -T
   context="module"
   lang="ts"
 >
+  import { T, useFrame } from '@threlte/core'
+  import { useGltf } from '@threlte/extras'
+  import { Collider, CollisionGroups } from '@threlte/rapier'
+  import { derived } from 'svelte/store'
   import type * as THREE from 'three'
   import { Group, Mesh } from 'three'
-  import { createRawEventDispatcher, T, useFrame } from '@threlte/core'
-  import { useGltf } from '@threlte/extras'
-  import { useRefreshCollider } from '../utils/useRefreshCollider'
-  import { Collider, CollisionGroups } from '@threlte/rapier'
   import { paused } from '../../stores/app'
+  import { useElement } from '../ElementContext.svelte'
+  import { useLevelState } from '../LevelState.svelte'
+  import { useRefreshCollider } from '../utils/useRefreshCollider'
 
   type GLTFResult = {
     nodes: {
@@ -43,13 +46,14 @@ Command: npx @threlte/gltf@1.0.0-next.2 ./checkpoint.glb -i -P -t -s -T
 
   const gltf = load()
 
-  const dispatch = createRawEventDispatcher<{
-    checkpointreached: undefined
-  }>()
+  const { name } = useElement()
+  const { registerCheckpointReached, checkpointsReached } = useLevelState()
+
+  const checkpointReached = derived(checkpointsReached, (checkpointsReached) => {
+    return checkpointsReached.has(name)
+  })
 
   let signMesh: Mesh
-
-  let reached = false
 
   $: signMaterial = $gltf?.materials.Material.clone()
 
@@ -91,7 +95,7 @@ Command: npx @threlte/gltf@1.0.0-next.2 ./checkpoint.glb -i -P -t -s -T
           material.color="#606060"
           material.roughness={0.3}
           material.metalness={0.3}
-          material.emissive={reached ? 'green' : 'red'}
+          material.emissive={$checkpointReached ? 'green' : 'red'}
           bind:ref={signMesh}
         >
           <Collider
@@ -136,8 +140,7 @@ Command: npx @threlte/gltf@1.0.0-next.2 ./checkpoint.glb -i -P -t -s -T
           args={[5, 2.5, 5]}
           bind:refresh={refreshFns[2]}
           on:sensorenter={() => {
-            reached = true
-            dispatch('checkpointreached')
+            registerCheckpointReached(name)
           }}
           sensor
         />

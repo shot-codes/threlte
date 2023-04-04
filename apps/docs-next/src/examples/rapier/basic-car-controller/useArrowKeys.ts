@@ -39,11 +39,24 @@ export const useArrowKeys = () => {
     }
   })
 
+  const onVisibilityChange = () => {
+    if (document.visibilityState === 'hidden' || document.hidden) {
+      arrowKeys.set({
+        ArrowDown: false,
+        ArrowLeft: false,
+        ArrowRight: false,
+        ArrowUp: false
+      })
+    }
+  }
+
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUp)
+  window.addEventListener('visibilitychange', onVisibilityChange)
   onDestroy(() => {
     window.removeEventListener('keydown', onKeyDown)
     window.removeEventListener('keyup', onKeyUp)
+    window.removeEventListener('visibilitychange', onVisibilityChange)
   })
 
   return {

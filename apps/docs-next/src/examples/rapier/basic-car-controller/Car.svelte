@@ -6,7 +6,6 @@
     Collider as RapierCollider,
     Ray,
     RigidBody as RapierRigidBody,
-    RigidBodyType,
     Rotation as RapierRotation,
     Rotation,
     Vector as RapierVector
@@ -14,7 +13,6 @@
   import { T, useFrame } from '@threlte/core'
   import { Audio } from '@threlte/extras'
   import { Collider, computeBitMask, RigidBody, useRapier } from '@threlte/rapier'
-  // import { Editable, Project, Sheet } from '@threlte/theatre'
   import { mapRange } from '@tweakpane/core'
   import { spring } from 'svelte/motion'
   import { Group, Quaternion, Vector3 } from 'three'
@@ -23,6 +21,8 @@
   import type { CarState } from './types'
   import { useArrowKeys } from './useArrowKeys'
   import { add, fromAToB, length, normalize } from './vectorUtils'
+
+  export let active = true
 
   const { world, paused } = useRapier()
 
@@ -142,7 +142,7 @@
     z: number
   } = {
     x: 0,
-    y: 5.5,
+    y: 0,
     z: 0
   }
 
@@ -285,9 +285,6 @@
 
   const spawn = () => {
     if (!rigidBody || !group) return
-    if (rigidBody.bodyType() !== RigidBodyType.Dynamic) {
-      rigidBody.setBodyType(RigidBodyType.Dynamic, true)
-    }
     rigidBody.setTranslation(
       {
         x: spawnPosition.x,
@@ -305,7 +302,7 @@
   // as soon as the rigidBody is available, we set its position and type to dynamic
   $: if (rigidBody) spawn()
 
-  const respawn = () => spawn()
+  export const respawn = () => spawn()
 
   // the total length of the suspension travel
 
@@ -905,15 +902,6 @@
   })
 </script>
 
-<svelte:window
-  on:keypress={(e) => {
-    const { key } = e
-    if (key === 'Enter' && !$paused) {
-      respawn()
-    }
-  }}
-/>
-
 {#if !$paused}
   <Audio
     src="/assets/basic-vehicle-controller/engine6.wav"
@@ -937,8 +925,9 @@
 <T.Group>
   <RigidBody
     canSleep={false}
-    type="fixed"
+    type="dynamic"
     bind:rigidBody
+    enabled={active}
   >
     <Collider
       restitution={0}

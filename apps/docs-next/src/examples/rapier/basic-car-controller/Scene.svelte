@@ -5,7 +5,8 @@
   import Stats from 'stats.js'
   import { tick } from 'svelte'
   import Game from './Game.svelte'
-  import { paused } from './stores/app'
+  import Intro from './Intro.svelte'
+  import { appState, paused } from './stores/app'
 
   const { pause, resume } = useRapier()
 
@@ -46,4 +47,12 @@
 <!-- We're only using global audio, so a global Audio Listener is fine -->
 <AudioListener />
 
-<Game />
+{#if $appState === 'intro'}
+  <Intro
+    on:introdone={() => {
+      appState.set('game')
+    }}
+  />
+{:else if $appState === 'game'}
+  <Game />
+{/if}
