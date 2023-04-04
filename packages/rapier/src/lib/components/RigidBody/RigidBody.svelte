@@ -29,6 +29,7 @@
   export let enabledRotations: $$Props['enabledRotations'] = [true, true, true]
   export let enabledTranslations: $$Props['enabledTranslations'] = [true, true, true]
   export let dominance: $$Props['dominance'] = 0
+  export let enabled: $$Props['enabled'] = true
 
   /**
    * Every RigidBody receives and forwards collision-related events
@@ -89,28 +90,27 @@
   /**
    * Reactive RigidBody properties
    */
-  $: {
-    rigidBodyTemp.setBodyType(parseRigidBodyType(type))
-    if (linearVelocity)
-      rigidBodyTemp.setLinvel(
-        { x: linearVelocity[0], y: linearVelocity[1], z: linearVelocity[2] },
-        true
-      )
-    if (angularVelocity)
-      rigidBodyTemp.setAngvel(
-        { x: angularVelocity[0], y: angularVelocity[1], z: angularVelocity[2] },
-        true
-      )
-    rigidBodyTemp.setGravityScale(gravityScale, true)
-    rigidBodyTemp.enableCcd(ccd)
-    rigidBodyTemp.setDominanceGroup(dominance)
-    rigidBodyTemp.lockRotations(lockRotations, true)
-    rigidBodyTemp.lockTranslations(lockTranslations, true)
-    rigidBodyTemp.setEnabledRotations(...enabledRotations, true)
-    rigidBodyTemp.setEnabledTranslations(...enabledTranslations, true)
-    rigidBodyTemp.setAngularDamping(angularDamping)
-    rigidBodyTemp.setLinearDamping(linearDamping)
-  }
+  $: rigidBodyTemp.setBodyType(parseRigidBodyType(type), true)
+  $: if (linearVelocity)
+    rigidBodyTemp.setLinvel(
+      { x: linearVelocity[0], y: linearVelocity[1], z: linearVelocity[2] },
+      true
+    )
+  $: if (angularVelocity)
+    rigidBodyTemp.setAngvel(
+      { x: angularVelocity[0], y: angularVelocity[1], z: angularVelocity[2] },
+      true
+    )
+  $: rigidBodyTemp.setGravityScale(gravityScale, true)
+  $: rigidBodyTemp.enableCcd(ccd)
+  $: rigidBodyTemp.setDominanceGroup(dominance)
+  $: rigidBodyTemp.lockRotations(lockRotations, true)
+  $: rigidBodyTemp.lockTranslations(lockTranslations, true)
+  $: rigidBodyTemp.setEnabledRotations(...enabledRotations, true)
+  $: rigidBodyTemp.setEnabledTranslations(...enabledTranslations, true)
+  $: rigidBodyTemp.setAngularDamping(angularDamping)
+  $: rigidBodyTemp.setLinearDamping(linearDamping)
+  $: rigidBodyTemp.setEnabled(enabled)
 
   /**
    * Add userData to the rigidBody

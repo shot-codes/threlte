@@ -85,6 +85,11 @@ export type RigidBodyProps = {
    * values are 0.0 (no damping at all).
    */
   angularDamping?: number
+
+  /**
+   * Set the rigidBody as enabled or disabled.
+   */
+  enabled?: boolean
 }
 
 export default class RigidBody extends SvelteComponentTyped<RigidBodyProps> {}
