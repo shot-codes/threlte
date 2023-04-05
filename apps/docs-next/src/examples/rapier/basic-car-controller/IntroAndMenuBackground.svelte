@@ -95,8 +95,8 @@
 
 <Theatre>
   <T.Fog
-    near={20}
-    far={45}
+    near={10}
+    far={80}
     color="#868ba2"
     on:create={({ ref, cleanup }) => {
       scene.fog = ref
