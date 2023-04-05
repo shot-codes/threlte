@@ -11,7 +11,18 @@
       class="bg-white border-2 px-2 py-0 border-black uppercase hover:bg-black hover:text-white"
       on:click={() => {
         actions.goToCampaignMenu()
-      }}>Campaign</button
+      }}
     >
+      Campaign
+    </button>
+
+    <button
+      class="bg-white border-2 px-2 py-0 border-black uppercase hover:bg-black hover:text-white"
+      on:click={() => {
+        actions.goToUserLevelsMenu()
+      }}
+    >
+      User Levels
+    </button>
   </div>
 </UiWrapper>

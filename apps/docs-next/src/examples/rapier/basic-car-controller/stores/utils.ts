@@ -9,15 +9,17 @@ export const toCurrentReadable = <T>(
   current: T
 } => store
 
+type ActionReturn = void | false | { debug?: boolean }
+
 /**
  * Build actions from a record of functions.
  *
  * Actions should be the only way to mutate stores.
  * Because some logic cannot be reasonably implemented in reactive stores,
  * actions can also emit events. If an action returns false,
- * the event is not emitted and its debug message is not logged.
+ * the event is not emitted.
  */
-export const buildActions = <Actions extends Record<string, (...args: any[]) => void | false>>(
+export const buildActions = <Actions extends Record<string, (...args: any[]) => ActionReturn>>(
   actions: Actions,
   options?: {
     debug?: boolean
@@ -38,9 +40,13 @@ export const buildActions = <Actions extends Record<string, (...args: any[]) => 
     const action = actions[key]!
     acc[key] = ((...args: any[]) => {
       const rt = action(...(args as []))
+
       // The action is voided if it returns false
       if (rt === false) return
-      if (options?.debug) {
+
+      // an action can define a debug flag
+      const rtDebug = typeof rt !== 'undefined' && typeof rt !== 'boolean' ? rt.debug : undefined
+      if (options?.debug && (rtDebug ?? true)) {
         const payload = args.map((a) => JSON.stringify(a))
         const actionName = String(key)
         const actionDesc = payload.length
@@ -53,6 +59,8 @@ export const buildActions = <Actions extends Record<string, (...args: any[]) => 
           'color: inherit;'
         )
       }
+
+      // finally emit the event
       events.emit(key as keyof typeof actions)
     }) as any
     return acc

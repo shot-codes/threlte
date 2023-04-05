@@ -1,5 +1,6 @@
 <script lang="ts">
   import { actions } from '../stores/app'
+  import { useKeyDown } from '../useKeyDown'
   import UiWrapper from './UiWrapper.svelte'
 
   let levelIds: string[] = []
@@ -13,6 +14,10 @@
   }
 
   fetchAllLevels()
+
+  useKeyDown('Escape', () => {
+    actions.goToMainMenu()
+  })
 </script>
 
 <UiWrapper>

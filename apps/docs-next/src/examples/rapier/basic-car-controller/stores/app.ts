@@ -21,7 +21,7 @@ type AppState = {
 }
 
 type MenuState = {
-  readonly state: CurrentWritable<'main' | 'campaign' | 'options' | 'credits'>
+  readonly state: CurrentWritable<'main' | 'user-levels' | 'campaign' | 'options' | 'credits'>
 }
 
 type GameType = 'time-attack' | 'level-editor'
@@ -144,6 +144,11 @@ export const actions = buildActions(
       _menuState.state.set('campaign')
     },
 
+    goToUserLevelsMenu: () => {
+      _appState.state.set('menu')
+      _menuState.state.set('user-levels')
+    },
+
     goToOptionsMenu: () => {
       _appState.state.set('menu')
       _menuState.state.set('options')
@@ -222,7 +227,7 @@ export const actions = buildActions(
       if (_gameState.levelState.current !== 'playing') return false
       if (_gameState.paused.current) return false
       _gameState.timeAttack.time.update((t) => t + time)
-      return false
+      return { debug: false }
     },
 
     /**
@@ -263,8 +268,8 @@ export const actions = buildActions(
 
     toggleGamePaused: () => {
       if (_appState.state.current !== 'game') return false
-      if (_gameState.paused.current) _gameState.paused.set(false)
-      else _gameState.paused.set(true)
+      if (_gameState.paused.current) actions.resumeGame()
+      else actions.pauseGame()
     }
   },
   { debug: true }

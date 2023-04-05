@@ -23,6 +23,7 @@
   import { add, fromAToB, length, normalize } from './vectorUtils'
 
   export let active = true
+  export let volume = 1
 
   const { world } = useRapier()
 
@@ -361,7 +362,7 @@
   }
 
   let playbackRate = minPlaybackRate
-  let volume = idleVolume
+  let _volume = idleVolume
 
   /**
    * -------------------------------------------------------
@@ -880,9 +881,9 @@
       mapLinear(Math.max($axis.y, 0), 0, 1, idleVolume, loadVolume) *
       mapLinear(playbackRate, minPlaybackRate, maxPlaybackRate, volumePlaybackRateMultiplier, 1)
     // we're lerping toward desiredVolume
-    const volumeIsGoingUp = desiredVolume > volume
+    const volumeIsGoingUp = desiredVolume > _volume
     const t = volumeIsGoingUp ? 0.4 : 0.05
-    volume = lerp(volume, desiredVolume, t)
+    _volume = lerp(_volume, desiredVolume, t) * volume
 
     // set the dampings
     if (active) {
@@ -915,7 +916,7 @@
   src="/assets/basic-vehicle-controller/engine6.wav"
   loop
   autoplay
-  {volume}
+  volume={_volume}
   {playbackRate}
 />
 

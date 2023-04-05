@@ -33,7 +33,7 @@
   import { useKeyPress } from '../useKeyPress'
   import { derived } from 'svelte/store'
 
-  const { gameType, levelId, levelEditor } = gameState
+  const { gameType, levelId, levelEditor, paused } = gameState
   const { view } = levelEditor
 
   useKeyPress('e', () => {
@@ -45,8 +45,8 @@
     }
   })
 
-  const showLevelEditorUi = derived([gameType, view], ([gameType, view]) => {
-    return gameType === 'level-editor' && view === 'editor'
+  const showLevelEditorUi = derived([gameType, view, paused], ([gameType, view, paused]) => {
+    return gameType === 'level-editor' && view === 'editor' && !paused
   })
 
   if ($gameType === 'level-editor') {

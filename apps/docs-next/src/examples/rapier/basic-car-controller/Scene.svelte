@@ -7,8 +7,9 @@
   import IntroAndMenuBackground from './IntroAndMenuBackground.svelte'
   import Menu from './Menu.svelte'
   import { appState } from './stores/app'
+  import { derived } from 'svelte/store'
 
-  const { state } = appState
+  const { state, visibility } = appState
 
   const stats = new Stats()
   stats.showPanel(1) // 0: fps, 1: ms, 2: mb, 3+: custom
@@ -30,10 +31,14 @@
     ctx.renderer?.render(ctx.scene, ctx.camera.current)
     stats.end()
   })
+
+  const masterVolume = derived(visibility, (visibility) => {
+    return visibility === 'hidden' ? 0 : 1
+  })
 </script>
 
 <!-- We're only using global audio, so a global Audio Listener is fine -->
-<AudioListener />
+<AudioListener masterVolume={$masterVolume} />
 
 {#if $state === 'menu'}
   <IntroAndMenuBackground />

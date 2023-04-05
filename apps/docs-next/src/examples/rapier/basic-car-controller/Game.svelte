@@ -23,8 +23,14 @@
 
   useKeyPress('Enter', () => {
     if ($levelState === 'level-intro') {
-      // At this point we're just waiting for user input.
-      actions.startCountIn()
+      // when we're in the level editor, we jump straight to game play without a
+      // count-in.
+      if ($gameType === 'level-editor') {
+        actions.startGamePlay()
+      } else {
+        // For other game modes, we start the count-in.
+        actions.startCountIn()
+      }
     }
     if ($levelState === 'finished' && $gameType === 'time-attack') {
       actions.resetTimeAttack()
@@ -75,6 +81,11 @@
       return true
     }
   )
+
+  const carVolume = derived(paused, (paused) => {
+    if (paused) return 0
+    return 1
+  })
 
   const showTimeAttackFinishedUi = derived([gameType, levelState], ([gameType, levelState]) => {
     if (gameType !== 'time-attack') return false
@@ -161,6 +172,7 @@
       bind:respawn={respawnCar}
       debug={$debug}
       active={$carActive}
+      volume={$carVolume}
     >
       <T.PerspectiveCamera
         bind:ref={gameCam}
