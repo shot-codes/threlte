@@ -1,8 +1,32 @@
-import type { CurrentWritable } from '@threlte/core'
+import { CurrentWritable, currentWritable } from '@threlte/core'
 import mitt, { Emitter } from 'mitt'
 import { onDestroy } from 'svelte'
 import type { Readable } from 'svelte/store'
 
+type JsonCurrentWritable<T> = CurrentWritable<T> & {
+  toJSON: () => T
+}
+
+export const toJsonCurrentWritable = <T>(
+  store: CurrentWritable<T>
+): CurrentWritable<T> & {
+  toJSON: () => T
+} => {
+  const jsonStore = store as any
+  jsonStore.toJSON = () => {
+    return store.current
+  }
+  return jsonStore
+}
+
+export const createState = <T>(initialValue: T): JsonCurrentWritable<T> => {
+  const store = currentWritable(initialValue)
+  return toJsonCurrentWritable(store)
+}
+
+/**
+ * This is actually only type-safe. The store is used as-is.
+ */
 export const toCurrentReadable = <T>(
   store: CurrentWritable<T>
 ): Readable<T> & {

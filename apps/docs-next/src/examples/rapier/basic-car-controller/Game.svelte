@@ -82,8 +82,9 @@
     }
   )
 
-  const carVolume = derived(paused, (paused) => {
+  const carVolume = derived([paused, gameType, view], ([paused, gameType, view]) => {
     if (paused) return 0
+    if (gameType === 'level-editor' && view === 'editor') return 0
     return 1
   })
 

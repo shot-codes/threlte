@@ -1,5 +1,5 @@
-import { currentWritable, CurrentWritable } from '@threlte/core'
-import { buildActions, toCurrentReadable } from './utils'
+import type { CurrentWritable } from '@threlte/core'
+import { buildActions, createState, toCurrentReadable } from './utils'
 
 /**
  * -----------------------------------------------------
@@ -45,9 +45,9 @@ type GameState = {
  * -----------------------------------------------------
  */
 const _appState: AppState = {
-  state: currentWritable('menu'),
-  visibility: currentWritable('visible'),
-  debug: currentWritable(false)
+  state: createState('menu'),
+  visibility: createState('visible'),
+  debug: createState(false)
 }
 
 /**
@@ -65,7 +65,7 @@ export const appState = {
  * -----------------------------------------------------
  */
 const _menuState: MenuState = {
-  state: currentWritable('main')
+  state: createState('main')
 }
 
 /**
@@ -81,15 +81,15 @@ export const menuState = {
  * -----------------------------------------------------
  */
 const _gameState: GameState = {
-  levelState: currentWritable('loading-level'),
-  gameType: currentWritable('time-attack'),
-  levelId: currentWritable('level-1'),
-  paused: currentWritable(false),
+  levelState: createState('loading-level'),
+  gameType: createState('time-attack'),
+  levelId: createState('level-1'),
+  paused: createState(false),
   timeAttack: {
-    time: currentWritable(0)
+    time: createState(0)
   },
   levelEditor: {
-    view: currentWritable('editor')
+    view: createState('editor')
   }
 }
 
@@ -253,6 +253,9 @@ export const actions = buildActions(
     setLevelEditorView: (view: 'game' | 'editor') => {
       if (_appState.state.current !== 'game') return false
       if (_gameState.gameType.current !== 'level-editor') return false
+      if (view === 'game') {
+        _gameState.levelState.set('playing')
+      }
       _gameState.levelEditor.view.set(view)
     },
 
@@ -274,3 +277,9 @@ export const actions = buildActions(
   },
   { debug: true }
 )
+
+export const printState = () => {
+  console.log('appState', JSON.stringify(appState, null, 2))
+  console.log('menuState', JSON.stringify(menuState, null, 2))
+  console.log('gameState', JSON.stringify(gameState, null, 2))
+}

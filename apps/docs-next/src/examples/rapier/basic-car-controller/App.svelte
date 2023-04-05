@@ -3,7 +3,7 @@
   import { Debug, World } from '@threlte/rapier'
   import Loader from './Loader.svelte'
   import Scene from './Scene.svelte'
-  import { appState, actions } from './stores/app'
+  import { appState, actions, printState } from './stores/app'
   import { useKeyPress } from './useKeyPress'
 
   const { debug } = appState
@@ -19,6 +19,10 @@
       actions.setVisibility('visible')
     }
   }
+
+  useKeyPress('Shift+P', () => {
+    printState()
+  })
 </script>
 
 <svelte:window on:visibilitychange={onVisibilityChange} />
