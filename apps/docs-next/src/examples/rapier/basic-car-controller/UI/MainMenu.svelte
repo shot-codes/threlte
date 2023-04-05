@@ -1,6 +1,7 @@
 <script lang="ts">
   import { actions } from '../stores/app'
   import UiWrapper from './UiWrapper.svelte'
+  import Button from './components/Button.svelte'
 </script>
 
 <UiWrapper>
@@ -16,13 +17,12 @@
       Campaign
     </button>
 
-    <button
-      class="bg-white border-2 px-2 py-0 border-black uppercase hover:bg-black hover:text-white"
+    <Button
       on:click={() => {
         actions.goToUserLevelsMenu()
       }}
     >
       User Levels
-    </button>
+    </Button>
   </div>
 </UiWrapper>

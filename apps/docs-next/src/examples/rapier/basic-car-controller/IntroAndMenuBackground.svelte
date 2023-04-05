@@ -1,6 +1,6 @@
 <script lang="ts">
   import { T, useFrame, useThrelte } from '@threlte/core'
-  import { Environment, Float, OrbitControls } from '@threlte/extras'
+  import { Float, OrbitControls } from '@threlte/extras'
   import { onMount } from 'svelte'
   import { cubicInOut, quadOut, sineOut } from 'svelte/easing'
   import { tweened } from 'svelte/motion'
@@ -95,7 +95,7 @@
 <T.Fog
   near={20}
   far={45}
-  color="white"
+  color="#A7AABA"
   on:create={({ ref, cleanup }) => {
     scene.fog = ref
     cleanup(() => {
@@ -159,11 +159,6 @@
   </T.Group>
 </T.Group>
 
-<Environment
-  path="/hdr/"
-  files="shanghai_riverside_1k.hdr"
-/>
-
 <T.DirectionalLight
   position={[5, 5, 5]}
   intensity={1}
@@ -183,7 +178,7 @@
     >
       <CameraFade
         opacity={$fade}
-        color="white"
+        color="black"
       />
     </T.PerspectiveCamera>
   </Float>

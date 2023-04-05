@@ -246,6 +246,10 @@ export const actions = buildActions(
      */
     softResetTimeAttack: () => {
       if (_appState.state.current !== 'game') return false
+      // a soft reset can only be done while playing
+      if (_gameState.levelState.current !== 'playing') return false
+      // and not while paused
+      if (_gameState.paused.current) return false
       _gameState.levelState.set('count-in')
       _gameState.timeAttack.time.set(0)
     },
@@ -279,7 +283,15 @@ export const actions = buildActions(
 )
 
 export const printState = () => {
-  console.log('appState', JSON.stringify(appState, null, 2))
-  console.log('menuState', JSON.stringify(menuState, null, 2))
-  console.log('gameState', JSON.stringify(gameState, null, 2))
+  console.log(
+    JSON.stringify(
+      {
+        appState: appState,
+        menuState: menuState,
+        gameState: gameState
+      },
+      null,
+      2
+    )
+  )
 }

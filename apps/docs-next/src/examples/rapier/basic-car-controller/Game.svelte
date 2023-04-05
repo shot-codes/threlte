@@ -16,6 +16,7 @@
   import { actions, appState, gameState } from './stores/app'
   import { useKeyDown } from './useKeyDown'
   import { useKeyPress } from './useKeyPress'
+  import LevelLoadingUi from './UI/LevelLoadingUi.svelte'
 
   const { gameType, levelState, levelEditor, paused, levelId } = gameState
   const { view } = levelEditor
@@ -128,6 +129,10 @@
     respawnCar?.()
   })
 </script>
+
+{#if $levelState === 'loading-level'}
+  <LevelLoadingUi />
+{/if}
 
 {#if $showTimeAttackUi}
   <TimeAttackUi />

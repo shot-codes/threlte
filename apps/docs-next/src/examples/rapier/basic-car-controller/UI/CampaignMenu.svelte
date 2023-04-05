@@ -2,6 +2,9 @@
   import { actions } from '../stores/app'
   import { useKeyDown } from '../useKeyDown'
   import UiWrapper from './UiWrapper.svelte'
+  import BackButton from './components/BackButton.svelte'
+  import Button from './components/Button.svelte'
+  import TopBar from './components/TopBar.svelte'
 
   let levelIds: string[] = []
 
@@ -21,25 +24,28 @@
 </script>
 
 <UiWrapper>
-  <div class="flex flex-col justify-center items-center h-[33vh]">
-    <div class="">CAMPAIGN</div>
+  <TopBar>
+    <BackButton
+      slot="left"
+      on:click={() => {
+        actions.goToMainMenu()
+      }}
+    >
+      Back
+    </BackButton>
 
+    <p slot="center">CAMPAIGN</p>
+  </TopBar>
+
+  <div class="flex flex-col justify-center items-center h-[33vh]">
     {#each levelIds as levelId}
-      <button
+      <Button
         on:click={() => {
           actions.startTimeAttack(levelId)
         }}
       >
-        Play {levelId}
-      </button>
-
-      <button
-        on:click={() => {
-          actions.startLevelEditor(levelId)
-        }}
-      >
-        Edit {levelId}
-      </button>
+        {levelId}
+      </Button>
     {/each}
   </div>
 </UiWrapper>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { T } from '@threlte/core'
-  import { Environment, interactivity } from '@threlte/extras'
+  import { interactivity } from '@threlte/extras'
   import { Editable, Project, Sheet, Studio } from '@threlte/theatre'
   import ElementSelector from './ElementSelector.svelte'
   import LevelEditor from './LevelEditor.svelte'
@@ -9,8 +9,12 @@
   import SelectedSheetObject from './SelectedSheetObject.svelte'
   import Selection from './Selection.svelte'
   import type { ElementConfigurations } from './types'
-
   // Elements
+  import { derived } from 'svelte/store'
+  import { actions, gameState } from '../stores/app'
+  import { useKeyPress } from '../useKeyPress'
+  import ElementContext from './ElementContext.svelte'
+  import Barrier from './Elements/Barrier.svelte'
   import BarrierEnd from './Elements/BarrierEnd.svelte'
   import BarrierTurnLeft from './Elements/BarrierTurnLeft.svelte'
   import BarrierTurnRight from './Elements/BarrierTurnRight.svelte'
@@ -23,15 +27,10 @@
   import HalfBox from './Elements/HalfBox.svelte'
   import Ramp from './Elements/Ramp.svelte'
   import RampInverse from './Elements/RampInverse.svelte'
-  import LevelState from './LevelState.svelte'
-  import SheetObjectProvider from './SheetObjectProvider.svelte'
-  import Barrier from './Elements/Barrier.svelte'
   import Slope from './Elements/Slope.svelte'
+  import LevelState from './LevelState.svelte'
   import LoadEvent from './LoadEvent.svelte'
-  import ElementContext from './ElementContext.svelte'
-  import { gameState, actions } from '../stores/app'
-  import { useKeyPress } from '../useKeyPress'
-  import { derived } from 'svelte/store'
+  import SheetObjectProvider from './SheetObjectProvider.svelte'
 
   const { gameType, levelId, levelEditor, paused } = gameState
   const { view } = levelEditor
@@ -142,22 +141,6 @@
     }
   ]
 
-  // const rewriteProjectState = (json: any) => {
-  //   // in order for Studio to load and write different data than what's stored on disk, we need to
-  //   // rewrite the project state before it's loaded. This is a bit of a hack, but it works.
-  //   try {
-  //     const regularLevelId = $levelId
-  //     const editLevelId = `${$levelId}-edit`
-  //     json.sheetsById[editLevelId] = json.sheetsById[regularLevelId]
-  //     delete json.sheetsById[regularLevelId]
-  //     json.sheetsById[editLevelId].staticOverrides.byObject[`${editLevelId}-elements`] =
-  //       json.sheetsById[editLevelId].staticOverrides.byObject[`${regularLevelId}-elements`]
-  //     delete json.sheetsById[editLevelId].staticOverrides.byObject[`${regularLevelId}-elements`]
-  //     console.log(json)
-  //     return json
-  //   } catch (error) {}
-  // }
-
   const getProjectConfig = async () => {
     try {
       const text = await import(`./levels/${$levelId}.json?raw`)
@@ -178,11 +161,6 @@
     }
   }
 </script>
-
-<Environment
-  path="/hdr/"
-  files="shanghai_riverside_1k.hdr"
-/>
 
 <!-- TODO: DEFAULT BOX, NEEDS TO BE REPLACED BY START BLOCK -->
 <BasicBox />
