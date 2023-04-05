@@ -4,7 +4,7 @@
   import { onMount } from 'svelte'
   import { cubicInOut, quadOut, sineOut } from 'svelte/easing'
   import { tweened } from 'svelte/motion'
-  import type { PerspectiveCamera } from 'three'
+  import { Color, PerspectiveCamera } from 'three'
   import { DEG2RAD } from 'three/src/math/MathUtils'
   import CameraFade from './CameraFade.svelte'
   import HalfBox from './Level/Elements/HalfBox.svelte'
@@ -95,7 +95,7 @@
 <T.Fog
   near={10}
   far={80}
-  color="#868ba2"
+  color={new Color('#868ba2').convertLinearToSRGB()}
   on:create={({ ref, cleanup }) => {
     scene.fog = ref
     cleanup(() => {
