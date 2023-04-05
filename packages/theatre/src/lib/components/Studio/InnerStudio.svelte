@@ -19,6 +19,7 @@
   onMount(async () => {
     if ($globalStudio) {
       studioCtx.studio.set($globalStudio)
+      initialized = true
       return
     }
     const pkg = await import('@theatre/studio')
