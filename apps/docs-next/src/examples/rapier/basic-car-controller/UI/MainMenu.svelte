@@ -5,17 +5,16 @@
 </script>
 
 <UiWrapper>
-  <div class="flex flex-col justify-center items-center h-full tracking-widest">
+  <div class="flex flex-col justify-center items-center h-full tracking-widest gap-4">
     <div class="">THRELTEMANIA</div>
 
-    <button
-      class="bg-white border-2 px-2 py-0 border-black uppercase hover:bg-black hover:text-white"
+    <Button
       on:click={() => {
         actions.goToCampaignMenu()
       }}
     >
       Campaign
-    </button>
+    </Button>
 
     <Button
       on:click={() => {
