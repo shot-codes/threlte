@@ -18,6 +18,10 @@
   export let props: $$Props['props'] = undefined
   export let controls: $$Props['controls'] = undefined
   export let snap: $$Props['snap'] = undefined
+  /**
+   * @default false
+   */
+  export let detach: $$Props['detach'] = false
 
   const parent = useParent()
   const { invalidate } = useThrelte()
@@ -161,7 +165,9 @@
   globalObjects.set(`${projectId}-${sheetId}-${instanceId}-${name}`, object)
 
   onDestroy(() => {
-    sheet.detachObject(name)
+    if (detach) {
+      sheet.detachObject(name)
+    }
   })
 
   let values = object.value
