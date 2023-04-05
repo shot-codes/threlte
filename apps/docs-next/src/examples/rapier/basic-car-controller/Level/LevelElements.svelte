@@ -6,6 +6,7 @@
 
   export let sheet: ISheet
   export let levelId: string
+  export let sheetObjectName: string
 
   export let elementConfigurations: ElementConfigurations
   /**
@@ -29,7 +30,7 @@
   })
 
   const sheetObject = sheet?.object(
-    `${levelId}-elements`,
+    sheetObjectName,
     {
       ...entities
     },
@@ -44,7 +45,6 @@
 
   onDestroy(() => {
     unsubscriber?.()
-    sheet.detachObject(`${levelId}-elements`)
   })
 
   $: checkpointCount = objects

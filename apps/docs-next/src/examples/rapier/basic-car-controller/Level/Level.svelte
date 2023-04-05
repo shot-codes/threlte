@@ -142,16 +142,39 @@
     }
   ]
 
+  // const rewriteProjectState = (json: any) => {
+  //   // in order for Studio to load and write different data than what's stored on disk, we need to
+  //   // rewrite the project state before it's loaded. This is a bit of a hack, but it works.
+  //   try {
+  //     const regularLevelId = $levelId
+  //     const editLevelId = `${$levelId}-edit`
+  //     json.sheetsById[editLevelId] = json.sheetsById[regularLevelId]
+  //     delete json.sheetsById[regularLevelId]
+  //     json.sheetsById[editLevelId].staticOverrides.byObject[`${editLevelId}-elements`] =
+  //       json.sheetsById[editLevelId].staticOverrides.byObject[`${regularLevelId}-elements`]
+  //     delete json.sheetsById[editLevelId].staticOverrides.byObject[`${regularLevelId}-elements`]
+  //     console.log(json)
+  //     return json
+  //   } catch (error) {}
+  // }
+
   const getProjectConfig = async () => {
     try {
       const text = await import(`./levels/${$levelId}.json?raw`)
-      const json = JSON.parse(text.default)
       return {
-        state: json
+        state: JSON.parse(text.default)
       }
     } catch (error) {
       console.log(`Level state for level ${$levelId} not found.`)
       return undefined
+    }
+  }
+
+  const getProjectName = () => {
+    if ($gameType === 'level-editor') {
+      return `${$levelId}-edit`
+    } else {
+      return $levelId
     }
   }
 </script>
@@ -170,14 +193,15 @@
     hide={!$showLevelEditorUi}
   >
     <Project
-      name={$levelId}
+      name={getProjectName()}
       {config}
     >
       <Sheet
-        name={$levelId}
+        name={`${$levelId}`}
         let:sheet
       >
         <LevelElements
+          sheetObjectName={`${$levelId}-elements`}
           {sheet}
           {elementConfigurations}
           levelId={$levelId}

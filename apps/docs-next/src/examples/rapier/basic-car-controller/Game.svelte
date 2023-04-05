@@ -13,6 +13,7 @@
   import GamePauseMenu from './UI/GamePauseMenu.svelte'
   import { useKeyDown } from './useKeyDown'
   import { useKeyPress } from './useKeyPress'
+  import LevelFinishedMenu from './UI/LevelFinishedMenu.svelte'
 
   const { gameType, levelState, levelEditor, paused } = gameState
   const { view } = levelEditor
@@ -83,6 +84,10 @@
 
 {#if $paused}
   <GamePauseMenu />
+{/if}
+
+{#if $levelState === 'finished'}
+  <LevelFinishedMenu />
 {/if}
 
 {#if $levelState === 'count-in'}

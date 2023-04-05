@@ -243,8 +243,12 @@
     } as IExtension
   }
 
-  studio.current?.extend(getElementsExtension())
-  studio.current?.extend(getControlsExtension())
+  try {
+    studio.current?.extend(getElementsExtension())
+    studio.current?.extend(getControlsExtension())
+  } catch (error) {
+    console.warn('Studio extend error:', (error as any).message)
+  }
 
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'D' && e.getModifierState('Shift') && studio.current && sheetObject) {

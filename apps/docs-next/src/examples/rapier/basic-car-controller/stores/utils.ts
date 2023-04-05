@@ -10,7 +10,10 @@ export const toCurrentReadable = <T>(
 } => store
 
 export const buildActions = <Actions extends Record<string, (...args: any[]) => void>>(
-  actions: Actions
+  actions: Actions,
+  options?: {
+    debug?: boolean
+  }
 ): Actions &
   Emitter<Record<keyof Actions, void>> & {
     use: (name: keyof Actions, callback: () => void) => void
@@ -27,6 +30,19 @@ export const buildActions = <Actions extends Record<string, (...args: any[]) => 
     const action = actions[key]!
     acc[key] = ((...args: any[]) => {
       action(...(args as []))
+      if (options?.debug) {
+        const payload = args.map((a) => JSON.stringify(a))
+        const actionName = String(key)
+        const actionDesc = payload.length
+          ? `${actionName}(${payload.join(', ')})`
+          : `${actionName}()`
+        console.log(
+          `%c${` ACTION %c %c${actionDesc}`}`,
+          'color: white; background: blue;',
+          'background: transparent;',
+          'color: inherit;'
+        )
+      }
       events.emit(key as keyof typeof actions)
     }) as any
     return acc
