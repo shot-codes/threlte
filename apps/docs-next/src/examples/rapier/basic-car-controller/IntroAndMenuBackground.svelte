@@ -10,6 +10,7 @@
   import HalfBox from './Level/Elements/HalfBox.svelte'
   import MuscleCar from './MuscleCar.svelte'
   import MuscleCarWheel from './MuscleCarWheel.svelte'
+  import { Editable, Theatre } from '@threlte/theatre'
 
   let camera: PerspectiveCamera
 
@@ -64,7 +65,7 @@
 
   const boxComponents = [HalfBox]
   const boxLength = 5
-  const trackElements = 20
+  const trackElements = 40
   const trackLength = trackElements * boxLength
   const elementComponents = new Array(trackElements).fill(0).map(() => {
     const index = Math.floor(Math.random() * boxComponents.length)
@@ -92,17 +93,24 @@
   const { scene } = useThrelte()
 </script>
 
-<T.Fog
-  near={20}
-  far={45}
-  color="#A7AABA"
-  on:create={({ ref, cleanup }) => {
-    scene.fog = ref
-    cleanup(() => {
-      scene.fog = null
-    })
-  }}
-/>
+<Theatre>
+  <T.Fog
+    near={20}
+    far={45}
+    color="#868ba2"
+    on:create={({ ref, cleanup }) => {
+      scene.fog = ref
+      cleanup(() => {
+        scene.fog = null
+      })
+    }}
+  >
+    <Editable
+      name="fog"
+      color
+    />
+  </T.Fog>
+</Theatre>
 
 {#each elementComponents as element, index (index)}
   <T.Group
