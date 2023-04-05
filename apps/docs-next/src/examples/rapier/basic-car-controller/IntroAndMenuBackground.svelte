@@ -10,7 +10,6 @@
   import HalfBox from './Level/Elements/HalfBox.svelte'
   import MuscleCar from './MuscleCar.svelte'
   import MuscleCarWheel from './MuscleCarWheel.svelte'
-  import { Editable, Theatre } from '@threlte/theatre'
 
   let camera: PerspectiveCamera
 
@@ -93,24 +92,17 @@
   const { scene } = useThrelte()
 </script>
 
-<Theatre>
-  <T.Fog
-    near={10}
-    far={80}
-    color="#868ba2"
-    on:create={({ ref, cleanup }) => {
-      scene.fog = ref
-      cleanup(() => {
-        scene.fog = null
-      })
-    }}
-  >
-    <Editable
-      name="fog"
-      color
-    />
-  </T.Fog>
-</Theatre>
+<T.Fog
+  near={10}
+  far={80}
+  color="#868ba2"
+  on:create={({ ref, cleanup }) => {
+    scene.fog = ref
+    cleanup(() => {
+      scene.fog = null
+    })
+  }}
+/>
 
 {#each elementComponents as element, index (index)}
   <T.Group
