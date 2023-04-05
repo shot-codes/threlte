@@ -1,9 +1,5 @@
-// We're either in the Menu or in the Game
-
 import { currentWritable, CurrentWritable } from '@threlte/core'
 import { buildActions, toCurrentReadable } from './utils'
-
-// const emitter =
 
 /**
  * -----------------------------------------------------
