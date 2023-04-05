@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { menuState } from './stores/flow'
+  import { menuState } from './stores/app'
   import CampaignMenu from './UI/CampaignMenu.svelte'
   import MainMenu from './UI/MainMenu.svelte'
 

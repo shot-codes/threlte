@@ -12,7 +12,7 @@ Command: npx @threlte/gltf@1.0.0-next.2 ./checkpoint.glb -i -P -t -s -T
   import { derived } from 'svelte/store'
   import type * as THREE from 'three'
   import { Group, Mesh } from 'three'
-  import { gameState } from '../../stores/flow'
+  import { gameState } from '../../stores/app'
   import { useElement } from '../ElementContext.svelte'
   import { useLevelState } from '../LevelState.svelte'
   import { useRefreshCollider } from '../utils/useRefreshCollider'

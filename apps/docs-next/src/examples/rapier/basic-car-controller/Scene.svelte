@@ -6,7 +6,7 @@
   import Game from './Game.svelte'
   import IntroAndMenuBackground from './IntroAndMenuBackground.svelte'
   import Menu from './Menu.svelte'
-  import { appState } from './stores/flow'
+  import { appState } from './stores/app'
 
   const { state } = appState
 

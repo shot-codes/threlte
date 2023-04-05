@@ -9,18 +9,20 @@
   import Level from './Level/Level.svelte'
   import MuscleCar from './MuscleCar.svelte'
   import MuscleCarWheel from './MuscleCarWheel.svelte'
-  import { gameState, appState, actions } from './stores/flow'
   import GamePauseMenu from './UI/GamePauseMenu.svelte'
+  import LevelIntroMenu from './UI/LevelIntroMenu.svelte'
+  import TimeAttackFinished from './UI/TimeAttackFinished.svelte'
+  import TimeAttackUi from './UI/TimeAttackUi.svelte'
+  import { actions, appState, gameState } from './stores/app'
   import { useKeyDown } from './useKeyDown'
   import { useKeyPress } from './useKeyPress'
-  import LevelFinishedMenu from './UI/LevelFinishedMenu.svelte'
 
-  const { gameType, levelState, levelEditor, paused } = gameState
+  const { gameType, levelState, levelEditor, paused, levelId } = gameState
   const { view } = levelEditor
   const { visibility, debug } = appState
 
   useKeyPress('Enter', () => {
-    if ($levelState === 'before-count-in') {
+    if ($levelState === 'level-intro') {
       // At this point we're just waiting for user input.
       actions.startCountIn()
     }
@@ -46,6 +48,39 @@
       return false
     }
   )
+
+  const showCountIn = derived([gameType, levelState, paused], ([gameType, levelState, paused]) => {
+    if (gameType === 'level-editor') return false
+    if (levelState !== 'count-in') return false
+    if (paused) return false
+    return true
+  })
+
+  const showLevelIntro = derived(
+    [gameType, view, levelState, paused],
+    ([gameType, view, levelState, paused]) => {
+      if (paused) return false
+      if (levelState !== 'level-intro') return false
+      if (gameType === 'level-editor' && view === 'editor') return false
+      return true
+    }
+  )
+
+  const showTimeAttackUi = derived(
+    [gameType, levelState, paused],
+    ([gameType, levelState, paused]) => {
+      if (gameType !== 'time-attack') return false
+      if (levelState !== 'playing') return false
+      if (paused) return false
+      return true
+    }
+  )
+
+  const showTimeAttackFinishedUi = derived([gameType, levelState], ([gameType, levelState]) => {
+    if (gameType !== 'time-attack') return false
+    if (levelState !== 'finished') return false
+    return true
+  })
 
   const showLevel = derived(levelState, (levelState) => {
     return levelState !== 'loading-level'
@@ -82,15 +117,23 @@
   })
 </script>
 
+{#if $showTimeAttackUi}
+  <TimeAttackUi />
+{/if}
+
 {#if $paused}
   <GamePauseMenu />
 {/if}
 
-{#if $levelState === 'finished'}
-  <LevelFinishedMenu />
+{#if $showTimeAttackFinishedUi}
+  <TimeAttackFinished />
 {/if}
 
-{#if $levelState === 'count-in'}
+{#if $showLevelIntro}
+  <LevelIntroMenu levelId={$levelId} />
+{/if}
+
+{#if $showCountIn}
   <CountIn
     on:countindone={() => {
       actions.startGamePlay()

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { actions } from '../stores/flow'
+  import { actions } from '../stores/app'
   import UiWrapper from './UiWrapper.svelte'
 </script>
 

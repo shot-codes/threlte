@@ -3,7 +3,7 @@
   import { Debug, World } from '@threlte/rapier'
   import Loader from './Loader.svelte'
   import Scene from './Scene.svelte'
-  import { appState, actions } from './stores/flow'
+  import { appState, actions } from './stores/app'
   import { useKeyPress } from './useKeyPress'
 
   const { debug } = appState

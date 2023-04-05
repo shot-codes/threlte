@@ -9,7 +9,15 @@ export const toCurrentReadable = <T>(
   current: T
 } => store
 
-export const buildActions = <Actions extends Record<string, (...args: any[]) => void>>(
+/**
+ * Build actions from a record of functions.
+ *
+ * Actions should be the only way to mutate stores.
+ * Because some logic cannot be reasonably implemented in reactive stores,
+ * actions can also emit events. If an action returns false,
+ * the event is not emitted and its debug message is not logged.
+ */
+export const buildActions = <Actions extends Record<string, (...args: any[]) => void | false>>(
   actions: Actions,
   options?: {
     debug?: boolean
@@ -29,7 +37,9 @@ export const buildActions = <Actions extends Record<string, (...args: any[]) => 
   const proxyActions = keys.reduce((acc, key) => {
     const action = actions[key]!
     acc[key] = ((...args: any[]) => {
-      action(...(args as []))
+      const rt = action(...(args as []))
+      // The action is voided if it returns false
+      if (rt === false) return
       if (options?.debug) {
         const payload = args.map((a) => JSON.stringify(a))
         const actionName = String(key)

@@ -29,7 +29,7 @@
   import Slope from './Elements/Slope.svelte'
   import LoadEvent from './LoadEvent.svelte'
   import ElementContext from './ElementContext.svelte'
-  import { gameState, actions } from '../stores/flow'
+  import { gameState, actions } from '../stores/app'
   import { useKeyPress } from '../useKeyPress'
   import { derived } from 'svelte/store'
 

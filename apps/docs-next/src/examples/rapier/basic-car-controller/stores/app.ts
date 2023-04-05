@@ -25,7 +25,7 @@ type MenuState = {
 }
 
 type GameType = 'time-attack' | 'level-editor'
-type LevelState = 'loading-level' | 'before-count-in' | 'count-in' | 'playing' | 'finished'
+type LevelState = 'loading-level' | 'level-intro' | 'count-in' | 'playing' | 'finished'
 type GameState = {
   readonly levelId: CurrentWritable<string>
   readonly gameType: CurrentWritable<GameType>
@@ -182,14 +182,14 @@ export const actions = buildActions(
     },
 
     levelLoaded: () => {
-      if (_appState.state.current !== 'game') return
-      if (_gameState.levelState.current !== 'loading-level') return
-      _gameState.levelState.set('before-count-in')
+      if (_appState.state.current !== 'game') return false
+      if (_gameState.levelState.current !== 'loading-level') return false
+      _gameState.levelState.set('level-intro')
     },
 
     startCountIn: () => {
-      if (_appState.state.current !== 'game') return
-      if (_gameState.levelState.current !== 'before-count-in') return
+      if (_appState.state.current !== 'game') return false
+      if (_gameState.levelState.current !== 'level-intro') return false
       _gameState.levelState.set('count-in')
     },
 
@@ -197,8 +197,8 @@ export const actions = buildActions(
      * The count-in is finished, the user takes control of the car.
      */
     startGamePlay: () => {
-      if (_appState.state.current !== 'game') return
-      if (_gameState.levelState.current !== 'count-in') return
+      if (_appState.state.current !== 'game') return false
+      if (_gameState.levelState.current !== 'count-in') return false
       _gameState.levelState.set('playing')
     },
 
@@ -206,15 +206,23 @@ export const actions = buildActions(
      * The level is finished, the user may restart the level.
      */
     levelFinished: () => {
-      if (_appState.state.current !== 'game') return
-      if (_gameState.levelState.current !== 'playing') return
+      if (_appState.state.current !== 'game') return false
+      if (_gameState.levelState.current !== 'playing') return false
       _gameState.levelState.set('finished')
     },
 
-    setTimeAttackTime: (time: number) => {
-      if (_appState.state.current !== 'game') return
-      if (_gameState.gameType.current !== 'time-attack') return
-      _gameState.timeAttack.time.set(time)
+    /**
+     * The time is incremented to prevent accidentally setting it higher in the
+     * event of a game pause or other situations.
+     * This action does not emit an event!
+     */
+    incrementTimeAttackTime: (time: number) => {
+      if (_appState.state.current !== 'game') return false
+      if (_gameState.gameType.current !== 'time-attack') return false
+      if (_gameState.levelState.current !== 'playing') return false
+      if (_gameState.paused.current) return false
+      _gameState.timeAttack.time.update((t) => t + time)
+      return false
     },
 
     /**
@@ -222,8 +230,8 @@ export const actions = buildActions(
      * We begin *before* the count-in.
      */
     resetTimeAttack: () => {
-      if (_appState.state.current !== 'game') return
-      _gameState.levelState.set('before-count-in')
+      if (_appState.state.current !== 'game') return false
+      _gameState.levelState.set('level-intro')
       _gameState.timeAttack.time.set(0)
     },
 
@@ -232,29 +240,29 @@ export const actions = buildActions(
      * We begin *during* the count-in, so the game play is not affected.
      */
     softResetTimeAttack: () => {
-      if (_appState.state.current !== 'game') return
+      if (_appState.state.current !== 'game') return false
       _gameState.levelState.set('count-in')
       _gameState.timeAttack.time.set(0)
     },
 
     setLevelEditorView: (view: 'game' | 'editor') => {
-      if (_appState.state.current !== 'game') return
-      if (_gameState.gameType.current !== 'level-editor') return
+      if (_appState.state.current !== 'game') return false
+      if (_gameState.gameType.current !== 'level-editor') return false
       _gameState.levelEditor.view.set(view)
     },
 
     pauseGame: () => {
-      if (_appState.state.current !== 'game') return
+      if (_appState.state.current !== 'game') return false
       _gameState.paused.set(true)
     },
 
     resumeGame: () => {
-      if (_appState.state.current !== 'game') return
+      if (_appState.state.current !== 'game') return false
       _gameState.paused.set(false)
     },
 
     toggleGamePaused: () => {
-      if (_appState.state.current !== 'game') return
+      if (_appState.state.current !== 'game') return false
       if (_gameState.paused.current) _gameState.paused.set(false)
       else _gameState.paused.set(true)
     }

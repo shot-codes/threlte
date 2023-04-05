@@ -2,7 +2,7 @@
   lang="ts"
   context="module"
 >
-  import { currentWritable, CurrentWritable } from '@threlte/core'
+  import { currentWritable, CurrentWritable, useFrame } from '@threlte/core'
 
   type LevelStateContext = {
     checkpointsReached: CurrentWritable<Set<string>>
@@ -17,7 +17,9 @@
 
 <script lang="ts">
   import { createEventDispatcher, getContext, setContext } from 'svelte'
-  import { actions } from '../stores/flow'
+  import { actions, gameState } from '../stores/app'
+
+  const { levelState, gameType, paused } = gameState
 
   export let checkpointCount: number
   export let finishCount: number
@@ -60,6 +62,13 @@
     })
     levelComplete = false
   }
+
+  useFrame((_, delta) => {
+    if ($gameType !== 'time-attack') return
+    if ($levelState !== 'playing') return
+    if ($paused) return
+    actions.incrementTimeAttackTime(delta * 1000)
+  })
 
   actions.use('softResetTimeAttack', resetLevelState)
   actions.use('resetTimeAttack', resetLevelState)

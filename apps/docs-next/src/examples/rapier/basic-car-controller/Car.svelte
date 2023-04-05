@@ -569,14 +569,16 @@
         suspensionForceSum += tempVectorB.length()
 
         const suspensionImpulse = { x: tempVectorB.x, y: tempVectorB.y, z: tempVectorB.z }
-        rigidBody.applyImpulseAtPoint(suspensionImpulse, surfaceImpactPoint, true)
-        if (debug) {
-          updateImpulseVisualisation(`${wheelState.type}-suspension`, {
-            color: 'red',
-            impulse: suspensionImpulse,
-            origin: surfaceImpactPoint,
-            multiplier: 1 / suspensionImpulseMultiplier
-          })
+        if (active) {
+          rigidBody.applyImpulseAtPoint(suspensionImpulse, surfaceImpactPoint, true)
+          if (debug) {
+            updateImpulseVisualisation(`${wheelState.type}-suspension`, {
+              color: 'red',
+              impulse: suspensionImpulse,
+              origin: surfaceImpactPoint,
+              multiplier: 1 / suspensionImpulseMultiplier
+            })
+          }
         }
 
         wheelState.suspensionLength = hit.toi
@@ -717,15 +719,18 @@
           .clone()
           .normalize()
           .multiplyScalar(steeringTorque)
-        rigidBody.applyTorqueImpulse(steeringTorqueImpulse, true)
 
-        if (debug) {
-          updateImpulseVisualisation(`steeringTorque`, {
-            color: 'green',
-            impulse: steeringTorqueImpulse,
-            origin: currentWorldPosition,
-            multiplier: 1 / steeringTorqueMultiplier
-          })
+        if (active) {
+          rigidBody.applyTorqueImpulse(steeringTorqueImpulse, true)
+
+          if (debug) {
+            updateImpulseVisualisation(`steeringTorque`, {
+              color: 'green',
+              impulse: steeringTorqueImpulse,
+              origin: currentWorldPosition,
+              multiplier: 1 / steeringTorqueMultiplier
+            })
+          }
         }
       } else {
         // if we're not moving, reset the angular velocity
@@ -806,15 +811,17 @@
       }
 
       // apply summed	forward and side impulse
-      rigidBody.applyImpulseAtPoint(forwardSideSum, forwardImpulseOrigin, true)
+      if (active) {
+        rigidBody.applyImpulseAtPoint(forwardSideSum, forwardImpulseOrigin, true)
 
-      if (debug) {
-        updateImpulseVisualisation(`summedSideForwardImpulse`, {
-          color: 'yellow',
-          impulse: forwardSideSum,
-          origin: forwardImpulseOrigin,
-          multiplier: 1 / maxFrictionForce
-        })
+        if (debug) {
+          updateImpulseVisualisation(`summedSideForwardImpulse`, {
+            color: 'yellow',
+            impulse: forwardSideSum,
+            origin: forwardImpulseOrigin,
+            multiplier: 1 / maxFrictionForce
+          })
+        }
       }
 
       // we're on the ground, so set the linear damping to the default
@@ -878,8 +885,10 @@
     volume = lerp(volume, desiredVolume, t)
 
     // set the dampings
-    rigidBody.setAngularDamping(finalAngularDamping)
-    rigidBody.setLinearDamping(finalLinearDamping)
+    if (active) {
+      rigidBody.setAngularDamping(finalAngularDamping)
+      rigidBody.setLinearDamping(finalLinearDamping)
+    }
 
     carState.worldPosition.set(
       currentWorldPosition.x,
