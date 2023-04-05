@@ -25,7 +25,15 @@
           actions.startTimeAttack(levelId)
         }}
       >
-        {levelId}
+        Play {levelId}
+      </button>
+
+      <button
+        on:click={() => {
+          actions.startLevelEditor(levelId)
+        }}
+      >
+        Edit {levelId}
       </button>
     {/each}
   </div>
