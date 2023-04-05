@@ -47,6 +47,7 @@
     <T.Mesh
       receiveShadow
       castShadow
+      dispose={false}
     >
       <T is={geometry} />
       <T is={material} />

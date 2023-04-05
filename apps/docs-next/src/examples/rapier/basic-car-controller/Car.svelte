@@ -24,7 +24,7 @@
 
   export let active = true
 
-  const { world, paused } = useRapier()
+  const { world } = useRapier()
 
   let rigidBody: RapierRigidBody
 
@@ -453,7 +453,7 @@
   const collideWithGroup = computeBitMask([0], [], [])
 
   useFrame((_, delta) => {
-    if (!rigidBody || !collider || $paused) return
+    if (!rigidBody || !collider) return
 
     // we're mostly working with 60fps, so correctedDelta is ~1
     const correctedDelta = delta * 60
@@ -902,15 +902,13 @@
   })
 </script>
 
-{#if !$paused}
-  <Audio
-    src="/assets/basic-vehicle-controller/engine6.wav"
-    loop
-    autoplay
-    {volume}
-    {playbackRate}
-  />
-{/if}
+<Audio
+  src="/assets/basic-vehicle-controller/engine6.wav"
+  loop
+  autoplay
+  {volume}
+  {playbackRate}
+/>
 
 {#each impulseVisualisations as impulseVisualisation (impulseVisualisation.id)}
   <Impulse

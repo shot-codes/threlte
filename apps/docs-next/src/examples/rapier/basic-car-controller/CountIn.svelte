@@ -1,5 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher, onMount } from 'svelte'
+  import UiWrapper from './UI/UiWrapper.svelte'
 
   const dispatch = createEventDispatcher<{
     countindone: void
@@ -16,7 +17,6 @@
     for (let index = 0; index < 3; index++) {
       await wait(500)
       currentCount--
-      console.log(currentCount)
       if (currentCount === 0) {
         dispatch('countindone')
       }
@@ -27,3 +27,9 @@
     count()
   })
 </script>
+
+<UiWrapper>
+  <div class="flex flex-col justify-center items-center h-[33vh] tracking-widest">
+    <div>{currentCount}</div>
+  </div>
+</UiWrapper>

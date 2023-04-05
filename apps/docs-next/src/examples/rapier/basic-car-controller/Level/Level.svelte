@@ -9,8 +9,8 @@
   import SelectedSheetObject from './SelectedSheetObject.svelte'
   import Selection from './Selection.svelte'
   import type { ElementConfigurations } from './types'
+
   // Elements
-  import { isEditing, paused } from '../stores/app'
   import BarrierEnd from './Elements/BarrierEnd.svelte'
   import BarrierTurnLeft from './Elements/BarrierTurnLeft.svelte'
   import BarrierTurnRight from './Elements/BarrierTurnRight.svelte'
@@ -29,11 +29,28 @@
   import Slope from './Elements/Slope.svelte'
   import LoadEvent from './LoadEvent.svelte'
   import ElementContext from './ElementContext.svelte'
+  import { gameState, actions } from '../stores/flow'
+  import { useKeyPress } from '../useKeyPress'
+  import { derived } from 'svelte/store'
 
-  export let levelId: string
-  export let canEdit = false
+  const { gameType, levelId, levelEditor } = gameState
+  const { view } = levelEditor
 
-  if (canEdit) {
+  useKeyPress('e', () => {
+    if ($gameType !== 'level-editor') return
+    if ($view === 'editor') {
+      actions.setLevelEditorView('game')
+    } else if ($view === 'game') {
+      actions.setLevelEditorView('editor')
+    }
+  })
+
+  const showLevelEditorUi = derived([gameType, view], ([gameType, view]) => {
+    return gameType === 'level-editor' && view === 'editor'
+  })
+
+  if ($gameType === 'level-editor') {
+    // setup interactivity if we're in the level editor
     interactivity()
   }
 
@@ -125,40 +142,19 @@
     }
   ]
 
-  $: if ($isEditing) {
-    paused.set(true)
-  } else {
-    paused.set(false)
-  }
-
   const getProjectConfig = async () => {
     try {
-      const text = await import(`./levels/${levelId}.json?raw`)
+      const text = await import(`./levels/${$levelId}.json?raw`)
       const json = JSON.parse(text.default)
       return {
         state: json
       }
     } catch (error) {
-      console.log(`Level state for level ${levelId} not found.`)
+      console.log(`Level state for level ${$levelId} not found.`)
       return undefined
     }
   }
-
-  let resetLevelState: () => void
-
-  export const resetLevel = () => {
-    resetLevelState?.()
-  }
 </script>
-
-<svelte:window
-  on:keypress={(e) => {
-    if (!canEdit) return
-    if (e.key === 'e') {
-      $isEditing = !$isEditing
-    }
-  }}
-/>
 
 <Environment
   path="/hdr/"
@@ -170,21 +166,21 @@
 
 {#await getProjectConfig() then config}
   <Studio
-    enabled={canEdit}
-    hide={!$isEditing}
+    enabled={$gameType === 'level-editor'}
+    hide={!$showLevelEditorUi}
   >
     <Project
-      name={levelId}
+      name={$levelId}
       {config}
     >
       <Sheet
-        name={levelId}
+        name={$levelId}
         let:sheet
       >
         <LevelElements
           {sheet}
           {elementConfigurations}
-          {levelId}
+          levelId={$levelId}
           let:objects
           let:sheetObject
           let:entities
@@ -199,12 +195,8 @@
             {levelSheetObjects}
           />
 
-          <SelectedSheetObject
-            {canEdit}
-            let:selectedObjectKey
-          >
+          <SelectedSheetObject let:selectedObjectKey>
             <LevelState
-              bind:resetLevelState
               {checkpointCount}
               {finishCount}
               let:levelComplete
@@ -217,13 +209,13 @@
                 {#each ids as id (`${name}-${id}`)}
                   <T.Group>
                     <Editable
-                      controls={$isEditing}
+                      controls={$showLevelEditorUi}
                       transform
                       name={`${name}-${id}`}
                       let:object
                     >
                       <ElementContext name={`${name}-${id}`}>
-                        {#if canEdit}
+                        {#if $gameType === 'level-editor'}
                           <!-- Level editor mode -->
                           <!-- Register the sheet object is only mandatory for the level editor -->
                           <RegisterSheetObject
@@ -233,11 +225,11 @@
                           <SheetObjectProvider sheetObject={object}>
                             <ElementSelector
                               {object}
-                              editing={$isEditing}
+                              allowSelecting={$showLevelEditorUi}
                             >
                               <svelte:component this={component}>
                                 <svelte:fragment slot="selection">
-                                  {#if $isEditing && selectedObjectKey === object.address.objectKey}
+                                  {#if $showLevelEditorUi && selectedObjectKey === object.address.objectKey}
                                     <Selection />
                                   {/if}
                                 </svelte:fragment>

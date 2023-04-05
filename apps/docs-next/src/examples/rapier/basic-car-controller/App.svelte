@@ -3,29 +3,27 @@
   import { Debug, World } from '@threlte/rapier'
   import Loader from './Loader.svelte'
   import Scene from './Scene.svelte'
-  import { debug, paused } from './stores/app'
+  import { appState, actions } from './stores/flow'
+  import { useKeyPress } from './useKeyPress'
+
+  const { debug } = appState
+
+  useKeyPress('o', () => {
+    actions.toggleDebug()
+  })
 
   const onVisibilityChange = () => {
-    if (document.hidden) {
-      paused.set(true)
+    if (document.hidden || document.visibilityState === 'hidden') {
+      actions.setVisibility('hidden')
     } else {
-      paused.set(false)
+      actions.setVisibility('visible')
     }
   }
 </script>
 
-<svelte:window
-  on:visibilitychange={onVisibilityChange}
-  on:keypress={({ key }) => {
-    if (key === 'o') {
-      debug.update((value) => {
-        return !value
-      })
-    }
-  }}
-/>
+<svelte:window on:visibilitychange={onVisibilityChange} />
 
-<div class="w-full h-full">
+<div class="w-full h-full relative">
   <Canvas>
     <World order={-999}>
       {#if $debug}
@@ -40,6 +38,11 @@
       </Loader>
     </World>
   </Canvas>
+
+  <div
+    class="absolute top-0 left-0 w-full h-full pointer-events-none z-10 text-[3vh] [&_button]:pointer-events-auto"
+    id="car-ui-portal-target"
+  />
 </div>
 
 <style>

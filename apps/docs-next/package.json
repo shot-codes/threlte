@@ -35,7 +35,7 @@
     "@types/stats.js": "^0.17.0",
     "@types/three": "^0.144.0",
     "astro-auto-import": "^0.2.1",
-    "lamina": "^1.1.23",
+    "mitt": "^3.0.0",
     "node-html-parser": "^6.1.4",
     "postprocessing": "^6.29.1",
     "rehype-pretty-code": "^0.9.2",

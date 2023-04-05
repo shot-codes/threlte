@@ -17,6 +17,7 @@
 
 <script lang="ts">
   import { createEventDispatcher, getContext, setContext } from 'svelte'
+  import { actions } from '../stores/flow'
 
   export let checkpointCount: number
   export let finishCount: number
@@ -52,13 +53,16 @@
 
   setContext<LevelStateContext>('level-state', levelStateContext)
 
-  export const resetLevelState = () => {
+  const resetLevelState = () => {
     checkpointsReached.update((set) => {
       set.clear()
       return set
     })
     levelComplete = false
   }
+
+  actions.use('softResetTimeAttack', resetLevelState)
+  actions.use('resetTimeAttack', resetLevelState)
 </script>
 
 <slot {levelComplete} />

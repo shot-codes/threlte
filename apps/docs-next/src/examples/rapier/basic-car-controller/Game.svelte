@@ -9,23 +9,55 @@
   import Level from './Level/Level.svelte'
   import MuscleCar from './MuscleCar.svelte'
   import MuscleCarWheel from './MuscleCarWheel.svelte'
-  import { debug, gameState, gameType, isEditing } from './stores/app'
+  import { gameState, appState, actions } from './stores/flow'
+  import GamePauseMenu from './UI/GamePauseMenu.svelte'
+  import { useKeyDown } from './useKeyDown'
+  import { useKeyPress } from './useKeyPress'
 
-  gameState.set('loading-level')
+  const { gameType, levelState, levelEditor, paused } = gameState
+  const { view } = levelEditor
+  const { visibility, debug } = appState
+
+  useKeyPress('Enter', () => {
+    if ($levelState === 'before-count-in') {
+      // At this point we're just waiting for user input.
+      actions.startCountIn()
+    }
+    if ($levelState === 'finished' && $gameType === 'time-attack') {
+      actions.resetTimeAttack()
+    }
+    if ($levelState === 'playing' && $gameType === 'time-attack') {
+      actions.softResetTimeAttack()
+    }
+  })
+
+  useKeyDown('Escape', () => {
+    actions.toggleGamePaused()
+  })
+
+  const carActive = derived(
+    [gameType, levelState, visibility, view, paused],
+    ([gameType, levelState, visibility, view, paused]) => {
+      if (visibility === 'hidden') return false
+      if (gameType === 'level-editor' && view === 'editor') return false
+      if (paused) return false
+      if (levelState === 'playing' || levelState === 'finished') return true
+      return false
+    }
+  )
+
+  const showLevel = derived(levelState, (levelState) => {
+    return levelState !== 'loading-level'
+  })
 
   let gameCam: PerspectiveCamera
   let finishCam: PerspectiveCamera
 
-  let levelId = 'a-1'
-
   const { scene } = useThrelte()
 
-  $: carActive = $gameState === 'playing' || $gameState === 'finished'
-  $: showLevel = $gameState !== 'loading-level'
-
-  const currentCam = derived([gameState, isEditing], ([gameState, isEditing]) => {
-    if (isEditing) return 'edit'
-    if (gameState === 'finished') return 'finish'
+  const currentCam = derived([gameType, levelState, view], ([gameType, levelState, view]) => {
+    if (gameType === 'level-editor' && view === 'editor') return 'edit'
+    if (levelState === 'finished') return 'finish'
     return 'game'
   })
 
@@ -38,59 +70,36 @@
     gameCam.getWorldQuaternion(worldQuaternion)
     finishCam.position.copy(worldPosition)
     finishCam.quaternion.copy(worldQuaternion)
-    gameState.set('finished')
+    actions.levelFinished()
   }
 
-  let resetLevel: () => void
-
-  const softRestart = () => {
-    resetLevel?.()
+  actions.use('softResetTimeAttack', () => {
     respawnCar?.()
-    gameState.set('playing')
-  }
-
-  const restart = () => {
-    resetLevel?.()
+  })
+  actions.use('resetTimeAttack', () => {
     respawnCar?.()
-    gameState.set('before-count-in')
-  }
+  })
 </script>
 
-<svelte:window
-  on:keypress={(e) => {
-    const { key } = e
-    if (key === 'Enter') {
-      if ($gameState === 'before-count-in') {
-        gameState.set('count-in')
-      }
-      if ($gameState === 'finished') {
-        restart()
-      }
-      if ($gameState === 'playing') {
-        softRestart()
-      }
-    }
-  }}
-/>
+{#if $paused}
+  <GamePauseMenu />
+{/if}
 
-{#if $gameState === 'count-in'}
+{#if $levelState === 'count-in'}
   <CountIn
     on:countindone={() => {
-      gameState.set('playing')
+      actions.startGamePlay()
     }}
   />
 {/if}
 
-<T.Group visible={showLevel}>
+<T.Group visible={$showLevel}>
   <Level
-    bind:resetLevel
-    {levelId}
-    canEdit={$gameType === 'level-editor'}
     on:levelcomplete={() => {
       onLevelComplete()
     }}
     on:levelloaded={() => {
-      gameState.set('before-count-in')
+      actions.levelLoaded()
     }}
   >
     <!-- FINISH CAM -->
@@ -103,7 +112,7 @@
     <Car
       bind:respawn={respawnCar}
       debug={$debug}
-      active={carActive}
+      active={$carActive}
     >
       <T.PerspectiveCamera
         bind:ref={gameCam}

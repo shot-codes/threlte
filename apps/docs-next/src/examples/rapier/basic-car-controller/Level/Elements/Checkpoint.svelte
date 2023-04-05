@@ -12,7 +12,7 @@ Command: npx @threlte/gltf@1.0.0-next.2 ./checkpoint.glb -i -P -t -s -T
   import { derived } from 'svelte/store'
   import type * as THREE from 'three'
   import { Group, Mesh } from 'three'
-  import { paused } from '../../stores/app'
+  import { gameState } from '../../stores/flow'
   import { useElement } from '../ElementContext.svelte'
   import { useLevelState } from '../LevelState.svelte'
   import { useRefreshCollider } from '../utils/useRefreshCollider'
@@ -46,6 +46,8 @@ Command: npx @threlte/gltf@1.0.0-next.2 ./checkpoint.glb -i -P -t -s -T
 
   const gltf = load()
 
+  const { paused } = gameState
+
   const { name } = useElement()
   const { registerCheckpointReached, checkpointsReached } = useLevelState()
 
@@ -61,6 +63,7 @@ Command: npx @threlte/gltf@1.0.0-next.2 ./checkpoint.glb -i -P -t -s -T
     if (!signMesh) return
     signMesh.rotation.y -= 0.007
   })
+
   $: if ($paused) {
     stop()
   } else {

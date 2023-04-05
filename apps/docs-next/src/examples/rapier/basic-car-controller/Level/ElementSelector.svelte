@@ -8,10 +8,10 @@
   const { studio } = useStudio()
 
   export let object: ISheetObject
-  export let editing: boolean
+  export let allowSelecting: boolean
 
   const onClick = (e: any) => {
-    if (!editing) return
+    if (!allowSelecting) return
     e.stopPropagation()
     studio.current?.setSelection([object])
   }
@@ -32,15 +32,15 @@
 
 <T.Group
   on:pointermissed={() => {
-    if (!editing) return
+    if (!allowSelecting) return
     studio.current?.setSelection([])
   }}
   on:pointerleave={() => {
-    if (!editing) return
+    if (!allowSelecting) return
     onPointerLeave()
   }}
   on:pointerenter={(e) => {
-    if (!editing) return
+    if (!allowSelecting) return
     e.stopPropagation()
     onPointerEnter()
   }}

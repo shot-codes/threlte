@@ -3,8 +3,6 @@
   import { watch } from '@threlte/core'
   import { useStudio } from '@threlte/theatre'
 
-  export let canEdit: boolean
-
   const { studio } = useStudio()
 
   const isISheetObject = (obj: any): obj is ISheetObject => {
