@@ -7,12 +7,7 @@ export const toCurrentReadable = <T>(
   store: CurrentWritable<T>
 ): Readable<T> & {
   current: T
-} => {
-  return {
-    subscribe: store.subscribe,
-    current: store.current
-  }
-}
+} => store
 
 export const buildActions = <Actions extends Record<string, (...args: any[]) => void>>(
   actions: Actions

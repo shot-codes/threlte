@@ -2,13 +2,6 @@
 
 import { currentWritable, CurrentWritable } from '@threlte/core'
 import { buildActions, toCurrentReadable } from './utils'
-import type { Emitter } from 'mitt'
-import mitt from 'mitt'
-
-type Events = {
-  foo: string
-  bar?: number
-}
 
 // const emitter =
 
