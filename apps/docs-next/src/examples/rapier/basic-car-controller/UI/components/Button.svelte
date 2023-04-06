@@ -8,7 +8,7 @@
 <button
   on:click
   class={c(
-    'px-2 bg-white/60 backdrop-blur border-2 border-black text-black hover:bg-black hover:text-white uppercase [&_svg]:h-[1em] [&_svg]:w-[1em] [&_svg]:!fill-current',
+    'px-2 bg-white border-2 border-black text-black hover:bg-black hover:text-white uppercase [&_svg]:h-[1em] [&_svg]:w-[1em] [&_svg]:!fill-current',
     _class
   )}
 >

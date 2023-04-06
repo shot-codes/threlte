@@ -16,7 +16,8 @@
   import { actions, appState, gameState } from './stores/app'
   import { useKeyDown } from './useKeyDown'
   import { useKeyPress } from './useKeyPress'
-  import LevelLoadingUi from './UI/LevelLoadingUi.svelte'
+  import LoadingUi from './UI/LoadingUi.svelte'
+  import { sunPos } from './config'
 
   const { gameType, levelState, levelEditor, paused, levelId } = gameState
   const { view } = levelEditor
@@ -131,7 +132,7 @@
 </script>
 
 {#if $levelState === 'loading-level'}
-  <LevelLoadingUi />
+  <LoadingUi />
 {/if}
 
 {#if $showTimeAttackUi}
@@ -228,9 +229,9 @@
       <svelte:fragment let:carState>
         <T.DirectionalLight
           intensity={0.4}
-          position.x={carState.worldPosition.x + 8}
-          position.y={carState.worldPosition.y + 20}
-          position.z={carState.worldPosition.z - 3}
+          position.x={carState.worldPosition.x + sunPos[0] * 10}
+          position.y={carState.worldPosition.y + sunPos[1] * 10}
+          position.z={carState.worldPosition.z + sunPos[0] * 10}
           shadow.camera.left={-10}
           shadow.camera.right={10}
           shadow.camera.top={10}

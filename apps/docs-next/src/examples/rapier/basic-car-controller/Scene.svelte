@@ -59,8 +59,11 @@
 <!-- All scenes use the same environment -->
 <Env />
 
-{#if $state === 'menu'}
+{#if $state === 'intro' || $state === 'menu'}
   <IntroAndMenuBackground />
+{/if}
+
+{#if $state === 'menu'}
   <Menu />
 {:else if $state === 'game'}
   <Game />

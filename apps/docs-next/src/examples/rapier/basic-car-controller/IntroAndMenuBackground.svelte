@@ -1,7 +1,7 @@
 <script lang="ts">
   import { T, useFrame, useThrelte } from '@threlte/core'
-  import { Float, OrbitControls } from '@threlte/extras'
-  import { onMount } from 'svelte'
+  import { Float } from '@threlte/extras'
+  import { onDestroy, onMount } from 'svelte'
   import { cubicInOut, quadOut, sineOut } from 'svelte/easing'
   import { tweened } from 'svelte/motion'
   import { Color, PerspectiveCamera } from 'three'
@@ -10,46 +10,88 @@
   import HalfBox from './Level/Elements/HalfBox.svelte'
   import MuscleCar from './MuscleCar.svelte'
   import MuscleCarWheel from './MuscleCarWheel.svelte'
+  import { actions, appState } from './stores/app'
+
+  const { state } = appState
 
   let camera: PerspectiveCamera
 
-  const rotationY = tweened(0, {
+  type AnimationValue<T = any> = [intro: T, regular: T]
+
+  const initialValue = <T>(initialValue: AnimationValue<T>): T => {
+    if ($state === 'intro') return initialValue[0]
+    return initialValue[1]
+  }
+
+  const regularValue = <T>(initialValue: AnimationValue<T>): T => {
+    return initialValue[1]
+  }
+
+  const rotationYAnimationValue: AnimationValue<number> = [0, 1.3]
+  const rotationY = tweened(initialValue(rotationYAnimationValue), {
     duration: 30e3,
     easing: sineOut
   })
 
-  const cameraPosY = tweened(0.7, {
+  const cameraPosYAnimationValue: AnimationValue<number> = [0, 1.7]
+  const cameraPosY = tweened(initialValue(cameraPosYAnimationValue), {
     duration: 30e3,
     easing: sineOut
   })
 
-  const fade = tweened(1, {
+  const fadeAnimationValue: AnimationValue<number> = [1, 0]
+  const fade = tweened(initialValue(fadeAnimationValue), {
     duration: 3e3,
     easing: cubicInOut
+  })
+
+  const fovAnimationValue: AnimationValue<number> = [7, 20]
+  const fov = tweened(initialValue(fovAnimationValue), {
+    duration: 30e3,
+    easing: sineOut
+  })
+
+  const lookAtAnimationValue: AnimationValue<[number, number, number]> = [
+    [0, 0.7, 2],
+    [0, 0.7, 0]
+  ]
+  const lookAt = tweened(initialValue(lookAtAnimationValue), {
+    duration: 30e3,
+    easing: quadOut
+  })
+
+  let timeouts: ReturnType<typeof setTimeout>[] = []
+
+  onMount(() => {
+    if ($state === 'intro') {
+      // wait for things to settle down
+      timeouts.push(
+        setTimeout(() => {
+          fov.set(regularValue(fovAnimationValue))
+          lookAt.set(regularValue(lookAtAnimationValue))
+          rotationY.set(regularValue(rotationYAnimationValue))
+          cameraPosY.set(regularValue(cameraPosYAnimationValue))
+          fade.set(regularValue(fadeAnimationValue))
+        }, 1e3)
+      )
+
+      timeouts.push(
+        setTimeout(() => {
+          actions.goToMainMenu()
+        }, 4e3)
+      )
+    }
+  })
+
+  onDestroy(() => {
+    timeouts.forEach((timeout) => {
+      clearTimeout(timeout)
+    })
   })
 
   let wheelRotation = 0
   useFrame(() => {
     wheelRotation += 1
-  })
-
-  const fov = tweened(7, {
-    duration: 30e3,
-    easing: sineOut
-  })
-  const lookAt = tweened([0, 0.7, 2] as [number, number, number], {
-    duration: 30e3,
-    easing: quadOut
-  })
-  onMount(() => {
-    // wait for things to settle down
-    setTimeout(() => {
-      fov.set(20)
-      lookAt.set([0, 0.7, 0])
-      rotationY.set(1.3)
-      cameraPosY.set(1.7)
-      fade.set(0)
-    }, 1e3)
   })
 
   const wheelBase = 2.56
@@ -183,7 +225,3 @@
     </T.PerspectiveCamera>
   </Float>
 </T.Group>
-
-<T.PerspectiveCamera position={[10, 10, 10]}>
-  <OrbitControls />
-</T.PerspectiveCamera>

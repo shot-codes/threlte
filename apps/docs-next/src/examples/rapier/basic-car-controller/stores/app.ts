@@ -15,7 +15,7 @@ import { buildActions, createState, toCurrentReadable } from './utils'
  */
 
 type AppState = {
-  readonly state: CurrentWritable<'menu' | 'game'>
+  readonly state: CurrentWritable<'intro' | 'menu' | 'game'>
   readonly visibility: CurrentWritable<'visible' | 'hidden'>
   readonly debug: CurrentWritable<boolean>
 }
@@ -45,7 +45,7 @@ type GameState = {
  * -----------------------------------------------------
  */
 const _appState: AppState = {
-  state: createState('menu'),
+  state: createState('intro'),
   visibility: createState('visible'),
   debug: createState(false)
 }
@@ -294,4 +294,43 @@ export const printState = () => {
       2
     )
   )
+}
+
+export const saveStateToLocalStorage = () => {
+  console.log('saving state to local storage')
+  localStorage.setItem('appState', JSON.stringify(appState))
+  localStorage.setItem('menuState', JSON.stringify(menuState))
+  localStorage.setItem('gameState', JSON.stringify(gameState))
+}
+
+export const loadStateFromLocalStorage = () => {
+  console.log('loading state from local storage')
+  const loadedAppState = JSON.parse(localStorage.getItem('appState') ?? '')
+  const loadedMenuState = JSON.parse(localStorage.getItem('menuState') ?? '')
+  const loadedGameState = JSON.parse(localStorage.getItem('gameState') ?? '')
+
+  // recursively set state values. If the value is an object, call this function again,
+  // otherwise, set the value on the state at the path the object is at.
+  const setStateValue = (state: any, data: any, currentPath = '') => {
+    const currentPathParts = currentPath.split('.').filter((p) => p.length)
+    const currentData = currentPathParts.reduce((acc, p) => acc[p], data)
+    for (const key in currentData) {
+      // if (key === 'levelEditor') debugger
+      if (data[key] instanceof Object) {
+        if (currentPath.length) {
+          currentPath += '.' + key
+        } else {
+          currentPath += key
+        }
+        setStateValue(state, data, currentPath)
+      } else {
+        const currentState = currentPathParts.reduce((acc, p) => acc[p], state)
+        currentState[key].set(currentData[key])
+      }
+    }
+  }
+
+  setStateValue(_appState, loadedAppState)
+  setStateValue(_menuState, loadedMenuState)
+  setStateValue(_gameState, loadedGameState)
 }

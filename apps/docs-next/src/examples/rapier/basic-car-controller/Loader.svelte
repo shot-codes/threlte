@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { useProgress } from '@threlte/extras'
   import { preloadEnv } from './Env.svelte'
   import { preloadBarrier } from './Level/Elements/Barrier.svelte'
   import { preloadBarrierEnd } from './Level/Elements/BarrierEnd.svelte'
@@ -14,6 +15,7 @@
   import { preloadSlope } from './Level/Elements/Slope.svelte'
   import { preloadMuscleCar } from './MuscleCar.svelte'
   import { preloadMuscleCarWheel } from './MuscleCarWheel.svelte'
+  import LoadingUi from './UI/LoadingUi.svelte'
 
   const preload = () => {
     return Promise.all([
@@ -34,10 +36,12 @@
       preloadBasicBox()
     ])
   }
+
+  const { progress } = useProgress()
 </script>
 
 {#await preload()}
-  <!-- Loading indicator -->
+  <LoadingUi progress={$progress} />
 {:then}
   <slot />
 {/await}
